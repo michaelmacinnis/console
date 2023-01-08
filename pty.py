@@ -4,6 +4,7 @@ import fcntl
 import os
 import select
 import sys
+import tty
 
 def log(*args):
   print(*args, file=sys.stderr)
@@ -11,6 +12,13 @@ def log(*args):
 def nonblocking(fd):
   fl = fcntl.fcntl(fd, fcntl.F_GETFL)
   fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
+
+def raw(fd):
+    prev = tty.tcgetattr(fd)
+
+    tty.setraw(fd)
+
+    return lambda : tty.tcsetattr(fd, tty.TCSADRAIN, prev)
 
 def read(fd, n=65536):
   try:
@@ -42,6 +50,7 @@ def launch():
     nonblocking(fd)
 
     stdin = sys.stdin.fileno()
+    restore = raw(stdin)
     nonblocking(stdin)
 
     while True:
@@ -66,6 +75,8 @@ def launch():
         break
 
     _, status = os.waitpid(child_pid, 0)
+
+    restore()
 
     return status
 
