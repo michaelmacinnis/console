@@ -31,6 +31,11 @@ def read(fd, n=65536):
   except OSError:
     return None
 
+def write(fd, b):
+  while b:
+    n = os.write(fd, b)
+    b = b[n:]
+
 def launch():
   try:
     child_pid, fd = os.forkpty()
@@ -40,7 +45,8 @@ def launch():
 
   if child_pid == 0:
     try:
-      os.execlp("/home/michael/Play/go/bin/oh", "oh")
+      #os.execlp("cat", "cat", "-v")
+      os.execlp("/home/michael/Workspace/oh/oh", "oh")
     except Exception as ex:
       log("cannot launch oh", ex)
       sys.exit(255) # TODO: Replace with correct status code.
@@ -58,7 +64,7 @@ def launch():
 
       prompt = read(fd)
       while prompt:
-        os.write(1, prompt)
+        write(1, prompt)
         prompt = read(fd)
 
       if prompt is None:
@@ -66,12 +72,12 @@ def launch():
 
       command = read(stdin)
       while command:
-        os.write(fd, command)
+        write(fd, command)
         command = read(stdin)
 
       if command is None:
         os.close(fd)
-        os.write(1, b"\r\n")
+        write(1, b"\r\n")
         break
 
     _, status = os.waitpid(child_pid, 0)
