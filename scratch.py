@@ -1,76 +1,87 @@
 import curses
 import curses.ascii
 
-stdscr = curses.initscr()
+class Screen:
+    def __init__(self):
+        self.buffer = ''
+        self.command = ''
+        self.editing = False
+        self.status = ''
 
-curses.curs_set(2)
-curses.mousemask(curses.ALL_MOUSE_EVENTS | curses.REPORT_MOUSE_POSITION)
+        self.stdscr = curses.initscr()
 
-curses.cbreak()
-curses.noecho()
-curses.raw()
+        curses.curs_set(2)
+        curses.mousemask(curses.ALL_MOUSE_EVENTS | curses.REPORT_MOUSE_POSITION)
 
-#if curses.has_colors():
-#    curses.start_color()
+        curses.cbreak()
+        curses.noecho()
+        curses.raw()
 
-stdscr.keypad(True)
+        self.stdscr.keypad(True)
 
-def render(stdscr, buffer, status, command, editing):
-    rows, cols = stdscr.getmaxyx()
-    stdscr.clear()
+    def close(self):
+        self.stdscr.keypad(False)
 
-    if rows > 2:
-        stdscr.addstr(rows-2, 0, status, curses.A_REVERSE)
-        stdscr.chgat(-1, curses.A_REVERSE)
+        curses.noraw()
+        curses.nocbreak()
+        curses.echo()
 
-        if editing:
-            stdscr.addstr(rows-1, 0, command)
-            stdscr.addstr(0, 0, buffer)
+        curses.endwin()
+        curses.flushinp()
+
+    def handle(self, key):
+        self.status = 'key = {}'.format(curses.keyname(key))
+        if key == curses.KEY_MOUSE:
+            id, x, y, z, bstate = curses.getmouse()
+            self.status += ' id = {} x = {} y = {} z = {} bstate = {}'.format(
+                id, x, y, z, bstate
+            )
+
+            rows, _ = self.stdscr.getmaxyx()
+            self.editing = y < rows - 2
+
+        if curses.ascii.isprint(key):
+            if self.editing:
+                self.buffer += chr(key)
+            else:
+                self.command += chr(key)
+
+    def key(self):
+        return self.stdscr.getch()
+
+    def render(self):
+        rows, cols = self.stdscr.getmaxyx()
+        self.stdscr.clear()
+
+        if rows > 2:
+            self.stdscr.addstr(rows-2, 0, self.status, curses.A_REVERSE)
+            self.stdscr.chgat(-1, curses.A_REVERSE)
+
+            if self.editing:
+                self.stdscr.addstr(rows-1, 0, self.command)
+                self.stdscr.addstr(0, 0, self.buffer)
+            else:
+                self.stdscr.addstr(0, 0, self.buffer)
+                self.stdscr.addstr(rows-1, 0, self.command)
+
+
+        self.stdscr.refresh()
+
+        if self.editing:
+            curses.setsyx(0, len(self.buffer))
         else:
-            stdscr.addstr(0, 0, buffer)
-            stdscr.addstr(rows-1, 0, command)
+            curses.setsyx(rows-1, len(self.command))
 
-
-    stdscr.refresh()
-
-    if editing:
-        curses.setsyx(0, len(buffer))
-    else:
-        curses.setsyx(rows-1, len(command))
-
-buffer = ''
-command = ''
-editing = False
-status = ''
+screen = Screen()
 
 while True:
-    render(stdscr, buffer, status, command, editing)
+    screen.render()
 
-    key = stdscr.getch()
+    key = screen.key()
     if key == 27:
         break
 
-    status = 'key = {}'.format(curses.keyname(key))
-    if key == curses.KEY_MOUSE:
-        id, x, y, z, bstate = curses.getmouse()
-        status += ' id = {} x = {} y = {} z = {} bstate = {}'.format(
-            id, x, y, z, bstate
-        )
+    screen.handle(key)
 
-        rows, _ = stdscr.getmaxyx()
-        editing = y < rows - 2
+screen.close()
 
-    if curses.ascii.isprint(key):
-        if editing:
-            buffer += chr(key)
-        else:
-            command += chr(key)
-
-stdscr.keypad(False)
-
-curses.noraw()
-curses.nocbreak()
-curses.echo()
-
-curses.endwin()
-curses.flushinp()
