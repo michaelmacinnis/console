@@ -72,16 +72,3 @@ class Screen:
         else:
             curses.setsyx(rows-1, len(self.command))
 
-screen = Screen()
-
-while True:
-    screen.render()
-
-    key = screen.key()
-    if key == 27:
-        break
-
-    screen.handle(key)
-
-screen.close()
-
