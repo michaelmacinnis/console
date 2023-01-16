@@ -1,12 +1,16 @@
 import curses
-import curses.ascii
+import os
 
-class Screen:
+import buffer
+
+class Terminal:
     def __init__(self):
-        self.buffer = ''
-        self.command = ''
+        self.buffer = buffer.Buffer()
+        self.command = buffer.Buffer()
         self.editing = False
         self.status = ''
+
+        os.environ.setdefault('ESCDELAY', '50')
 
         self.stdscr = curses.initscr()
 
@@ -30,8 +34,9 @@ class Screen:
         curses.flushinp()
 
     def handle(self, key):
-        self.status = 'key = {}'.format(curses.keyname(key))
-        if key == curses.KEY_MOUSE:
+        self.status = 'key = {}'.format(key)
+
+        if key == b'KEY_MOUSE':
             id, x, y, z, bstate = curses.getmouse()
             self.status += ' id = {} x = {} y = {} z = {} bstate = {}'.format(
                 id, x, y, z, bstate
@@ -40,35 +45,56 @@ class Screen:
             rows, _ = self.stdscr.getmaxyx()
             self.editing = y < rows - 2
 
-        if curses.ascii.isprint(key):
-            if self.editing:
-                self.buffer += chr(key)
-            else:
-                self.command += chr(key)
+            return
+
+        if self.editing:
+            self.buffer.handle(key)
+        else:
+            self.command.handle(key)
+
+    def _key(self):
+        try:
+            k = self.stdscr.get_wch()
+            if isinstance(k, int):
+                k = curses.keyname(k)
+
+            return k
+        except:
+            return ''
 
     def key(self):
-        return self.stdscr.getch()
+        k = self._key()
+        if k == chr(27):
+            self.stdscr.nodelay(True)
+            n = self._key()
+            if n != '':
+                k = 'ALT+' + n
+            self.stdscr.nodelay(False)
+        return k
 
     def render(self):
         rows, cols = self.stdscr.getmaxyx()
         self.stdscr.clear()
+
+        buf = self.buffer.render()
+        cmd = self.command.render()
 
         if rows > 2:
             self.stdscr.addstr(rows-2, 0, self.status, curses.A_REVERSE)
             self.stdscr.chgat(-1, curses.A_REVERSE)
 
             if self.editing:
-                self.stdscr.addstr(rows-1, 0, self.command)
-                self.stdscr.addstr(0, 0, self.buffer)
+                self.stdscr.addstr(rows-1, 0, cmd)
+                self.stdscr.addstr(0, 0, buf)
             else:
-                self.stdscr.addstr(0, 0, self.buffer)
-                self.stdscr.addstr(rows-1, 0, self.command)
+                self.stdscr.addstr(0, 0, buf)
+                self.stdscr.addstr(rows-1, 0, cmd)
 
 
         self.stdscr.refresh()
 
         if self.editing:
-            curses.setsyx(0, len(self.buffer))
+            curses.setsyx(0, len(buf))
         else:
-            curses.setsyx(rows-1, len(self.command))
+            curses.setsyx(rows-1, len(cmd))
 

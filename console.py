@@ -1,15 +1,15 @@
-import screen
+import terminal
 
-scr = screen.Screen()
+term = terminal.Terminal()
 
 while True:
-    scr.render()
+    term.render()
 
-    key = scr.key()
-    if key == 27:
+    key = term.key()
+    if key == chr(4):
         break
 
-    scr.handle(key)
+    term.handle(key)
 
-scr.close()
+term.close()
 
