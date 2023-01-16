@@ -5,11 +5,8 @@ term = terminal.Terminal()
 while True:
     term.render()
 
-    key = term.key()
-    if key == chr(4):
+    if not term.handle(term.key()):
         break
-
-    term.handle(key)
 
 term.close()
 

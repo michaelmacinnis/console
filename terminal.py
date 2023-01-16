@@ -45,12 +45,24 @@ class Terminal:
             rows, _ = self.stdscr.getmaxyx()
             self.editing = y < rows - 2
 
-            return
+            return True
+
+        if key == chr(5):
+            self.editing = False
+            return True
+        elif key == chr(23):
+            self.editing = True
+            return True
+        elif key == chr(17):
+            if self.editing:
+                return False
 
         if self.editing:
             self.buffer.handle(key)
         else:
             self.command.handle(key)
+
+        return True
 
     def _key(self):
         try:
