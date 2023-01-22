@@ -43,16 +43,14 @@ class Terminal:
 
         self.stdscr.keypad(True)
 
-        self.status = repr(curses.tigetstr("kxIN"))
-
-        print(getstr("kxIN"), file=sys.stderr)
-        print(getstr("kxOUT"), file=sys.stderr)
-
-        self.status = repr(self.dll.define_key(getstr("kxIN"), 1001))
-        self.dll.define_key(getstr("kxOUT"), 1002)
+        # Make sure focus in/out are defined.
+        self.dll.define_key(b'\x1b[I', 1001)
+        self.dll.define_key(b'\x1b[O', 1002)
 
         print(curses.has_key(1001), file=sys.stderr)
         print(curses.has_key(1002), file=sys.stderr)
+        print('focus in defined', self.dll.key_defined(b'\x1b[I'), file=sys.stderr)
+        print('focus out defined', self.dll.key_defined(b'\x1b[O'), file=sys.stderr)
 
     def close(self):
         self.stdscr.keypad(False)
