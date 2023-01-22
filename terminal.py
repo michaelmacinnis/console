@@ -1,5 +1,6 @@
 import curses
 import os
+import sys
 
 import buffer
 
@@ -23,6 +24,8 @@ class Terminal:
 
         self.stdscr.keypad(True)
 
+        self.status = repr(curses.tigetstr("kxIn"))
+
     def close(self):
         self.stdscr.keypad(False)
 
@@ -34,7 +37,7 @@ class Terminal:
         curses.flushinp()
 
     def handle(self, key):
-        self.status = 'key = {}'.format(key)
+        self.status = 'key = {}'.format(repr(key))
 
         if key == b'KEY_MOUSE':
             id, x, y, z, bstate = curses.getmouse()
@@ -60,7 +63,12 @@ class Terminal:
         if self.editing:
             self.buffer.handle(key)
         else:
-            self.command.handle(key)
+            if key == chr(10):
+                cmd = self.command.buffer
+                self.command.clear()
+                print(cmd, file=sys.stderr)
+            else:
+                self.command.handle(key)
 
         return True
 

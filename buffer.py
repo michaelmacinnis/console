@@ -10,6 +10,9 @@ bindings = {
 # Memory mapped file or ropes or something.
 class Buffer:
     def __init__(self):
+        self.clear()
+
+    def clear(self):
         self.buffer = ''
         self.cursor = 0
 

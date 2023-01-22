@@ -13,6 +13,70 @@ STDIN_FILENO = 0
 STDOUT_FILENO = 1
 STDERR_FILENO = 2
 
+control_modes = {
+    tty.CSIZE:  "Character size",
+    tty.CSTOPB: "Send two stop bits, else one",
+    tty.CREAD:  "Enable receiver",
+    tty.PARENB: "Parity enable",
+    tty.PARODD: "Odd parity, else even",
+    tty.HUPCL:  "Hang up on last close",
+    tty.CLOCAL: "Ignore modem status lines",
+}
+
+input_modes = {
+    tty.BRKINT: "Signal interrupt on break",
+    tty.ICRNL:  "Map CR to NL on input",
+    tty.IGNBRK: "Ignore break condition",
+    tty.IGNCR:  "Ignore CR",
+    tty.IGNPAR: "Ignore characters with parity errors",
+    tty.INLCR:  "Map NL to CR on input",
+    tty.INPCK:  "Enable input parity check",
+    tty.ISTRIP: "Strip character",
+    tty.IXANY:  "Enable any character to restart output",
+    tty.IXOFF:  "Enable start/stop input control",
+    tty.IXON:   "Enable start/stop output control",
+    tty.PARMRK: "Mark parity errors",
+}
+
+local_modes = {
+    tty.ECHO:   "Enable echo",
+    tty.ECHOE:  "Echo erase character as error-correcting backspace",
+    tty.ECHOK:  "Echo KILL",
+    tty.ECHONL: "Echo NL",
+    tty.ICANON: "Canonical input (erase and kill processing)",
+    tty.IEXTEN: "Enable extended input character processing",
+    tty.ISIG:   "Enable signals",
+    tty.NOFLSH: "Disable flush after interrupt or quit",
+    tty.TOSTOP: "Send SIGTTOU for background output",
+}
+
+output_modes = {
+    tty.OPOST:  "Post-process output",
+    tty.ONLCR:  "Map NL to CR-NL on output",
+    tty.OCRNL:  "Map CR to NL on output",
+    tty.ONOCR:  "No CR output at column 0",
+    tty.ONLRET: "NL performs CR function",
+    tty.OFILL:  "Use fill characters for delay",
+    tty.NLDLY:  "Newline delay",
+    tty.CRDLY:  "Carriage-return delay",
+    tty.TABDLY: "Horizontal-tab delay",
+    tty.BSDLY:  "Backspace delay",
+    tty.VTDLY:  "Vertical-tab delay",
+    tty.FFDLY:  "Form-feed delay",
+}
+
+def print_mode(lst):
+    print("mode change:", file=sys.stderr)
+
+    modes = [input_modes, output_modes, control_modes, local_modes]
+    for i in range(4):
+        flags = lst[i]
+        for flag, description in modes[i].items():
+            if flag & flags:
+                print(description, file=sys.stderr)
+
+    print(file=sys.stderr)
+
 def _writen(fd, data):
     """Write all the data to a descriptor."""
     while data:
@@ -31,12 +95,12 @@ def _pkt_read(fd):
 
     return b
 
-def _copy(child_fd, child_read=_pkt_read, stdin_read=_read):
+def _copy(child_fd, child_read, stdin_read):
     """Parent copy loop.
     Copies
             child fd -> standard output   (child_read)
             standard input -> child fd    (stdin_read)"""
-    fds = [child_fd, STDIN_FILENO]
+    fds = [STDIN_FILENO, child_fd]
     while fds:
         rfds, _, xfds = select.select(fds, [], fds)
 
@@ -61,43 +125,39 @@ def _copy(child_fd, child_read=_pkt_read, stdin_read=_read):
                 _writen(child_fd, data)
 
         if child_fd in xfds:
-            print("mode change", tty.tcgetattr(child_fd), file=sys.stderr)
+            print_mode(tty.tcgetattr(child_fd))
 
-def spawn(argv, child_read=_read, stdin_read=_read):
+def spawn(argv):
     """Create a spawned process."""
     if type(argv) == type(''):
         argv = (argv,)
-    sys.audit('pty.spawn', argv)
 
-    pid, child_fd = pty.fork()
+    pid, fd = pty.fork()
     if pid == CHILD:
         os.execlp(argv[0], *argv)
 
-    try:
-        mode = tty.tcgetattr(STDIN_FILENO)
-        tty.setraw(STDIN_FILENO)
-        restore = True
-    except tty.error:    # This is the same as termios.error
-        restore = False
+    return pid, fd
 
-    fcntl.ioctl(child_fd, tty.TIOCPKT, "    ")
+pid, fd = spawn(["sh"])
 
-    try:
-        _copy(child_fd, child_read, stdin_read)
-    finally:
-        if restore:
-            tty.tcsetattr(STDIN_FILENO, tty.TCSAFLUSH, mode)
+try:
+    mode = tty.tcgetattr(STDIN_FILENO)
+    tty.setraw(STDIN_FILENO)
+    restore = True
+except tty.error:    # This is the same as termios.error
+    restore = False
 
-    os.close(child_fd)
-    return os.waitpid(pid, 0)[1]
+fcntl.ioctl(fd, tty.TIOCPKT, "    ")
 
-def request(fd):
-    return os.read(fd, 65536)
+try:
+    _copy(fd, _pkt_read, _read)
+finally:
+    if restore:
+        tty.tcsetattr(STDIN_FILENO, tty.TCSAFLUSH, mode)
 
-def response(fd):
-    return os.read(fd, 65536)
+os.close(fd)
 
-status = spawn(["sh"], response, request)
+status = os.waitpid(pid, 0)[1]
 
 print(status)
 
