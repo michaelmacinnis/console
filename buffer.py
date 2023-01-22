@@ -3,7 +3,7 @@ import curses.ascii
 import os
 
 bindings = {
-    b'KEY_BACKSPACE': 'delete_char',
+    'KEY_BACKSPACE': 'delete_char',
 }
 
 # TODO: Make this something more efficient.

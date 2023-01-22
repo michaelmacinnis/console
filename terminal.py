@@ -2,7 +2,17 @@ import curses
 import os
 import sys
 
+from ctypes import CDLL, create_string_buffer
+
 import buffer
+
+def getstr(op):
+    return curses.tigetstr(op)
+
+def keyname(n):
+    if n < 0:
+        return ''
+    return curses.keyname(n).decode('utf-8')
 
 class Terminal:
     def __init__(self):
@@ -15,8 +25,17 @@ class Terminal:
 
         self.stdscr = curses.initscr()
 
+        self.dll = CDLL('/lib/x86_64-linux-gnu/libncursesw.so.6')
+
         curses.curs_set(2)
         curses.mousemask(curses.ALL_MOUSE_EVENTS | curses.REPORT_MOUSE_POSITION)
+        #curses.mousemask(16777215)
+
+        import _curses
+
+        print(dir(curses), file=sys.stderr)
+        print(dir(_curses), file=sys.stderr)
+        print(dir(self.stdscr), file=sys.stderr)
 
         curses.cbreak()
         curses.noecho()
@@ -24,7 +43,16 @@ class Terminal:
 
         self.stdscr.keypad(True)
 
-        self.status = repr(curses.tigetstr("kxIn"))
+        self.status = repr(curses.tigetstr("kxIN"))
+
+        print(getstr("kxIN"), file=sys.stderr)
+        print(getstr("kxOUT"), file=sys.stderr)
+
+        self.status = repr(self.dll.define_key(getstr("kxIN"), 1001))
+        self.dll.define_key(getstr("kxOUT"), 1002)
+
+        print(curses.has_key(1001), file=sys.stderr)
+        print(curses.has_key(1002), file=sys.stderr)
 
     def close(self):
         self.stdscr.keypad(False)
@@ -37,9 +65,9 @@ class Terminal:
         curses.flushinp()
 
     def handle(self, key):
-        self.status = 'key = {}'.format(repr(key))
+        print(repr(key), file=sys.stderr)
 
-        if key == b'KEY_MOUSE':
+        if key == 'KEY_MOUSE':
             id, x, y, z, bstate = curses.getmouse()
             self.status += ' id = {} x = {} y = {} z = {} bstate = {}'.format(
                 id, x, y, z, bstate
@@ -50,20 +78,20 @@ class Terminal:
 
             return True
 
-        if key == chr(5):
+        if key == "^E":
             self.editing = False
             return True
-        elif key == chr(23):
+        elif key == "^W":
             self.editing = True
             return True
-        elif key == chr(17):
+        elif key == "^Q":
             if self.editing:
                 return False
 
         if self.editing:
             self.buffer.handle(key)
         else:
-            if key == chr(10):
+            if key == "^J":
                 cmd = self.command.buffer
                 self.command.clear()
                 print(cmd, file=sys.stderr)
@@ -74,23 +102,23 @@ class Terminal:
 
     def _key(self):
         try:
-            k = self.stdscr.get_wch()
-            if isinstance(k, int):
-                k = curses.keyname(k)
-
+            #k = self.stdscr.getch()
+            k = self.dll.getch()
+            self.status = 'key = {}'.format(k)
             return k
         except:
-            return ''
+            return -1
 
     def key(self):
         k = self._key()
-        if k == chr(27):
+        if k == 27:
             self.stdscr.nodelay(True)
             n = self._key()
-            if n != '':
-                k = 'ALT+' + n
+            if n >= 0:
+                k = 'ALT+' + keyname(n)
             self.stdscr.nodelay(False)
-        return k
+            return k
+        return keyname(k)
 
     def render(self):
         rows, cols = self.stdscr.getmaxyx()
