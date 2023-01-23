@@ -142,6 +142,7 @@ class Buffer:
 
     def save_file(self, key):
         if self.filename:
-            with open(filename, 'w') as file:
+            with open(self.filename, 'w') as file:
                 file.write('\n'.join(self.buffer))
+                file.write('\n')
 
