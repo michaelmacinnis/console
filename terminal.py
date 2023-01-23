@@ -89,12 +89,7 @@ class Terminal:
         if self.editing:
             self.buffer.handle(key)
         else:
-            if key == "^J":
-                cmd = self.command.buffer
-                self.command.clear()
-                print(cmd, file=sys.stderr)
-            else:
-                self.command.handle(key)
+            self.command.handle(key)
 
         return True
 
@@ -122,28 +117,22 @@ class Terminal:
         rows, cols = self.stdscr.getmaxyx()
         self.stdscr.clear()
 
-        # The buffer renders from 0 to rows-3
-        # The status renders at rows-2
-        # The command renders at rows-1
-
-        self.buffer.render(self.stdscr, 0, rows-2, cols)
-        self.command.render(self.stdscr, rows-1, 1, cols)
-
         if rows > 2:
-            self.stdscr.addstr(rows-2, 0, self.status[:cols], curses.A_REVERSE)
+            n = min(rows-2, len(self.command.buffer))
+            rows -= n
+
+            if self.editing:
+                self.command.render(self.stdscr, rows, n, cols)
+            else:
+                self.buffer.render(self.stdscr, 0, rows-1, cols)
+
+            self.stdscr.addstr(rows-1, 0, self.status[:cols], curses.A_REVERSE)
             self.stdscr.chgat(-1, curses.A_REVERSE)
 
             if self.editing:
-                self.command.render(self.stdscr, rows-1, 1, cols)
-                self.buffer.render(self.stdscr, 0, rows-2, cols)
-                #self.stdscr.addstr(rows-1, 0, cmd)
-                #self.stdscr.addstr(0, 0, buf)
+                self.buffer.render(self.stdscr, 0, rows-1, cols)
             else:
-                self.buffer.render(self.stdscr, 0, rows-2, cols)
-                self.command.render(self.stdscr, rows-1, 1, cols)
-                #self.stdscr.addstr(0, 0, buf)
-                #self.stdscr.addstr(rows-1, 0, cmd)
-
+                self.command.render(self.stdscr, rows, n, cols)
 
         self.stdscr.refresh()
 
