@@ -11,6 +11,16 @@ bindings = {
     'KEY_UP': 'cursor_up',
 }
 
+def adjust(maximum, minimum, n):
+    if n < minimum:
+        return minimum - n
+    elif n > maximum:
+        return maximum - n
+    return 0
+
+def clip(maximum, minimum, n):
+    return n + adjust(maximum, minimum, n)
+
 # TODO: Make this something more efficient.
 # Memory mapped file or ropes or something.
 class Buffer:
@@ -43,56 +53,34 @@ class Buffer:
         print("buffer cursor at", str(self.col)+","+str(self.row), file=sys.stderr)
         print("screen cursor at", str(self.x)+","+str(self.y), file=sys.stderr)
 
-        if self.row < 1:
-            adj = 1 - self.row
-            self.row += adj
-            self.y += adj
-        elif self.row > len(self.buffer):
-            adj = len(self.buffer) - self.row
-            self.row += adj
-            self.y += adj
+        n = adjust(len(self.buffer), 1, self.row)
+        self.row += n
+        self.y += n
 
         print("buffer cursor at", str(self.col)+","+str(self.row), file=sys.stderr)
 
-        if self.col < 0:
-            adj = -self.col
-            self.col += adj
-            self.x += adj
-        elif self.col > len(self.buffer[self.row-1]):
-            adj = len(self.buffer[self.row-1]) - self.col
-            self.col += adj
-            self.x += adj
+        n = adjust(len(self.buffer[self.row-1]), 0, self.col)
+        self.col += n
+        self.x += n
 
         print("adjusted buffer cursor", str(self.col)+","+str(self.row), file=sys.stderr)
         print("adjusted screen cursor", str(self.x)+","+str(self.y), file=sys.stderr)
 
-        if self.x < 0:
-            self.x = 0
-        elif self.x > maxx-1: # Leave room for the cursor.
-            self.x = maxx-1
-
-        if self.y < 0:
-            self.y = 0
-        elif self.y > maxy-1:
-            self.y = maxy-1
+        self.x = clip(maxx-1, 0, self.x)
+        self.y = clip(maxy-1, 0, self.y)
 
         print("clipped screen cursor", str(self.x)+","+str(self.y), file=sys.stderr)
-        col = self.col - self.x + 1
-        if col < 1:
-            col = 1
+        col = max(1, self.col - self.x + 1)
+        row = max(1, self.row - self.y)
 
-        row = self.row - self.y
-        if row < 1:
-            row = 1
-
-        y = self.y+offset
+        last = self.y+offset
         print("adjusted", str(col)+","+str(row),file=sys.stderr)
         for line in self.buffer[row-1:][:maxy]:
             print("line", offset, row-1, line, file=sys.stderr)
             stdscr.addstr(offset, 0, line[col-1:][:maxx-1])
             offset += 1
 
-        stdscr.move(y, self.x)
+        stdscr.move(last, self.x)
         print(file=sys.stderr)
 
     # Actions.
