@@ -116,21 +116,16 @@ class Terminal:
         rows, cols = self.stdscr.getmaxyx()
         self.stdscr.clear()
 
-        if rows > 2:
-            n = min(rows-2, len(self.command.buffer))
+        if rows > 1:
+            n = min(rows-1, 0 if self.editing else len(self.command.buffer))
             rows -= n
-
-            if self.editing:
-                self.command.render(self.stdscr, rows, n, cols)
-            else:
-                self.buffer.render(self.stdscr, 0, rows-1, cols)
 
             self.stdscr.addstr(rows-1, 0, self.status[:cols], curses.A_REVERSE)
             self.stdscr.chgat(-1, curses.A_REVERSE)
 
-            if self.editing:
-                self.buffer.render(self.stdscr, 0, rows-1, cols)
-            else:
+            self.buffer.render(self.stdscr, 0, rows-1, cols)
+
+            if not self.editing:
                 self.command.render(self.stdscr, rows, n, cols)
 
         self.stdscr.refresh()
