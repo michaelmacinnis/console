@@ -12,11 +12,7 @@ bindings = {
 }
 
 def adjust(maximum, minimum, n):
-    if n < minimum:
-        return minimum - n
-    elif n > maximum:
-        return maximum - n
-    return 0
+    return minimum - n if n < minimum else maximum - n if n > maximum else 0
 
 def clip(maximum, minimum, n):
     return n + adjust(maximum, minimum, n)
@@ -24,8 +20,13 @@ def clip(maximum, minimum, n):
 # TODO: Make this something more efficient.
 # Memory mapped file or ropes or something.
 class Buffer:
-    def __init__(self):
+    def __init__(self, filename=None):
         self.clear()
+
+        if filename:
+            self.filename = filename
+            with open(filename, 'r') as file:
+                self.buffer = [line.rstrip("\n\r") for line in file]
 
     def clear(self):
         self.buffer = ['']
@@ -70,17 +71,21 @@ class Buffer:
         self.y = clip(maxy-1, 0, self.y)
 
         print("clipped screen cursor", str(self.x)+","+str(self.y), file=sys.stderr)
+
         col = max(1, self.col - self.x + 1)
         row = max(1, self.row - self.y)
 
         last = self.y+offset
         print("adjusted", str(col)+","+str(row),file=sys.stderr)
+
         for line in self.buffer[row-1:][:maxy]:
             print("line", offset, row-1, line, file=sys.stderr)
+
             stdscr.addstr(offset, 0, line[col-1:][:maxx-1])
             offset += 1
 
         stdscr.move(last, self.x)
+
         print(file=sys.stderr)
 
     # Actions.

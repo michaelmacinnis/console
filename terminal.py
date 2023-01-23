@@ -15,10 +15,10 @@ def keyname(n):
     return curses.keyname(n).decode('utf-8')
 
 class Terminal:
-    def __init__(self):
-        self.buffer = buffer.Buffer()
+    def __init__(self, filename=None):
+        self.buffer = buffer.Buffer(filename=filename)
         self.command = buffer.Buffer()
-        self.editing = False
+        self.editing = filename is not None
         self.status = ''
 
         os.environ.setdefault('ESCDELAY', '50')
@@ -29,7 +29,6 @@ class Terminal:
 
         curses.curs_set(2)
         curses.mousemask(curses.ALL_MOUSE_EVENTS | curses.REPORT_MOUSE_POSITION)
-        #curses.mousemask(16777215)
 
         import _curses
 

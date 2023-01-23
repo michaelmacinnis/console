@@ -1,8 +1,14 @@
 #!/usr/bin/env python3
 
+import sys
+
 import terminal
 
-term = terminal.Terminal()
+filename = None
+if len(sys.argv) == 2:
+    filename = sys.argv[1]
+
+term = terminal.Terminal(filename=filename)
 
 while True:
     term.render()
