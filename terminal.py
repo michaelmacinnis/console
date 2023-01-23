@@ -122,25 +122,28 @@ class Terminal:
         rows, cols = self.stdscr.getmaxyx()
         self.stdscr.clear()
 
-        buf = self.buffer.render()
-        cmd = self.command.render()
+        # The buffer renders from 0 to rows-3
+        # The status renders at rows-2
+        # The command renders at rows-1
+
+        self.buffer.render(self.stdscr, 0, rows-2, cols)
+        self.command.render(self.stdscr, rows-1, 1, cols)
 
         if rows > 2:
-            self.stdscr.addstr(rows-2, 0, self.status, curses.A_REVERSE)
+            self.stdscr.addstr(rows-2, 0, self.status[:cols], curses.A_REVERSE)
             self.stdscr.chgat(-1, curses.A_REVERSE)
 
             if self.editing:
-                self.stdscr.addstr(rows-1, 0, cmd)
-                self.stdscr.addstr(0, 0, buf)
+                self.command.render(self.stdscr, rows-1, 1, cols)
+                self.buffer.render(self.stdscr, 0, rows-2, cols)
+                #self.stdscr.addstr(rows-1, 0, cmd)
+                #self.stdscr.addstr(0, 0, buf)
             else:
-                self.stdscr.addstr(0, 0, buf)
-                self.stdscr.addstr(rows-1, 0, cmd)
+                self.buffer.render(self.stdscr, 0, rows-2, cols)
+                self.command.render(self.stdscr, rows-1, 1, cols)
+                #self.stdscr.addstr(0, 0, buf)
+                #self.stdscr.addstr(rows-1, 0, cmd)
 
 
         self.stdscr.refresh()
-
-        if self.editing:
-            curses.setsyx(0, len(buf))
-        else:
-            curses.setsyx(rows-1, len(cmd))
 
