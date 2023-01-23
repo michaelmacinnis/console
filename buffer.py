@@ -9,6 +9,7 @@ bindings = {
     'KEY_LEFT': 'cursor_left',
     'KEY_RIGHT': 'cursor_right',
     'KEY_UP': 'cursor_up',
+    '^S': 'save_file'
 }
 
 def adjust(maximum, minimum, n):
@@ -138,4 +139,9 @@ class Buffer:
             self.buffer[self.row-1] = line[:self.col] + key + line[self.col:]
             self.col += 1
             self.x += 1
+
+    def save_file(self, key):
+        if self.filename:
+            with open(filename, 'w') as file:
+                file.write('\n'.join(self.buffer))
 
