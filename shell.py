@@ -4,6 +4,7 @@ import fcntl
 import os
 import pty
 import select
+import signal
 import sys
 import tty
 
@@ -85,22 +86,26 @@ def _writen(fd, data):
 
 def _read(fd):
     """Default read function."""
-    return os.read(fd, 1024)
+    b = os.read(fd, 1024)
+    print("read", len(b), b[0] if len(b) else None, file=sys.stderr)
+    return b
 
 def _pkt_read(fd):
     """Default read function."""
     b = os.read(fd, 1024)
+
+    print("pkt_read", len(b), b[0] if len(b) else None, file=sys.stderr)
     if b:
-        b = b[1:]
+        data = b[1:]
+        return data, not b[0] and not data
+    return None, False
 
-    return b
-
-def _copy(child_fd, child_read, stdin_read):
+def _copy(child_fd, pipe_fd, child_read, stdin_read):
     """Parent copy loop.
     Copies
             child fd -> standard output   (child_read)
             standard input -> child fd    (stdin_read)"""
-    fds = [STDIN_FILENO, child_fd]
+    fds = [STDIN_FILENO, child_fd, pipe_fd]
     while fds:
         rfds, _, xfds = select.select(fds, [], fds)
 
@@ -108,21 +113,27 @@ def _copy(child_fd, child_read, stdin_read):
             # Some OSes signal EOF by returning an empty byte string,
             # some throw OSErrors.
             try:
-                data = child_read(child_fd)
+                data, eof = child_read(child_fd)
             except OSError:
-                data = b""
-            if not data:  # Reached EOF.
+                data = None
+            if eof:  # Reached EOF.
+                print("eof", file=sys.stderr)
                 return    # Assume the child process has exited and is
                           # unreachable, so we clean up.
-            else:
+            elif data:
+                print("<- ", data, file=sys.stderr)
                 os.write(STDOUT_FILENO, data)
 
         if STDIN_FILENO in rfds:
             data = stdin_read(STDIN_FILENO)
-            if not data:
-                fds.remove(STDIN_FILENO)
-            else:
+            #if data == b"\x04":
+            #   return
+            if data:
+                print("-> ", data, file=sys.stderr)
                 _writen(child_fd, data)
+
+        if pipe_fd in rfds:
+            return
 
         if child_fd in xfds:
             print_mode(tty.tcgetattr(child_fd))
@@ -140,6 +151,30 @@ def spawn(argv):
 
 pid, fd = spawn(["sh"])
 
+print("pid", pid, file=sys.stderr)
+
+p = os.pipe()
+
+flags = fcntl.fcntl(p[0], fcntl.F_GETFL)
+fcntl.fcntl(p[0], fcntl.F_SETFL, flags | os.O_NONBLOCK)
+
+flags = fcntl.fcntl(p[1], fcntl.F_GETFL)
+fcntl.fcntl(p[1], fcntl.F_SETFL, flags | os.O_NONBLOCK)
+
+status = 0
+
+def sigchld(signum, frame):
+    global status
+
+    cpid, status = os.wait()
+
+    print(pid, status, signum, frame, file=sys.stderr)
+
+    if cpid == pid:
+        _writen(p[1], b"x")
+
+signal.signal(signal.SIGCHLD, sigchld)
+
 try:
     mode = tty.tcgetattr(STDIN_FILENO)
     tty.setraw(STDIN_FILENO)
@@ -150,19 +185,12 @@ except tty.error:    # This is the same as termios.error
 fcntl.ioctl(fd, tty.TIOCPKT, "    ")
 
 try:
-    _copy(fd, _pkt_read, _read)
+    _copy(fd, p[0], _pkt_read, _read)
 finally:
     if restore:
         tty.tcsetattr(STDIN_FILENO, tty.TCSAFLUSH, mode)
 
 os.close(fd)
 
-status = os.waitpid(pid, 0)[1]
-
-print(status)
-
 status = os.waitstatus_to_exitcode(status)
-
-print(status)
-
 sys.exit(status)
