@@ -66,6 +66,17 @@ output_modes = {
     tty.FFDLY:  "Form-feed delay",
 }
 
+def pipe():
+    p = os.pipe()
+
+    flags = fcntl.fcntl(p[0], fcntl.F_GETFL)
+    fcntl.fcntl(p[0], fcntl.F_SETFL, flags | os.O_NONBLOCK)
+
+    flags = fcntl.fcntl(p[1], fcntl.F_GETFL)
+    fcntl.fcntl(p[1], fcntl.F_SETFL, flags | os.O_NONBLOCK)
+
+    return p
+
 def print_mode(lst):
     print("mode change:", file=sys.stderr)
 
@@ -78,19 +89,7 @@ def print_mode(lst):
 
     print(file=sys.stderr)
 
-def _writen(fd, data):
-    """Write all the data to a descriptor."""
-    while data:
-        n = os.write(fd, data)
-        data = data[n:]
-
-def _read(fd):
-    """Default read function."""
-    b = os.read(fd, 1024)
-    print("read", len(b), b[0] if len(b) else None, file=sys.stderr)
-    return b
-
-def _pkt_read(fd):
+def read_child(fd):
     """Default read function."""
     b = os.read(fd, 1024)
 
@@ -98,13 +97,28 @@ def _pkt_read(fd):
     if b:
         data = b[1:]
         return data, not b[0] and not data
+
     return None, False
 
-def _copy(child_fd, pipe_fd, child_read, stdin_read):
+def read_stdin(fd):
+    """Default read function."""
+    b = os.read(fd, 1024)
+
+    print("read", len(b), b[0] if len(b) else None, file=sys.stderr)
+
+    return b
+
+def write_all(fd, data):
+    """Write all the data to a descriptor."""
+    while data:
+        n = os.write(fd, data)
+        data = data[n:]
+
+def run(child_fd, pipe_fd):
     """Parent copy loop.
     Copies
-            child fd -> standard output   (child_read)
-            standard input -> child fd    (stdin_read)"""
+            child fd -> standard output   (read_child)
+            standard input -> child fd    (read_stdin)"""
     fds = [STDIN_FILENO, child_fd, pipe_fd]
     while fds:
         rfds, _, xfds = select.select(fds, [], fds)
@@ -113,7 +127,7 @@ def _copy(child_fd, pipe_fd, child_read, stdin_read):
             # Some OSes signal EOF by returning an empty byte string,
             # some throw OSErrors.
             try:
-                data, eof = child_read(child_fd)
+                data, eof = read_child(child_fd)
             except OSError:
                 data = None
             if eof:  # Reached EOF.
@@ -125,12 +139,10 @@ def _copy(child_fd, pipe_fd, child_read, stdin_read):
                 os.write(STDOUT_FILENO, data)
 
         if STDIN_FILENO in rfds:
-            data = stdin_read(STDIN_FILENO)
-            #if data == b"\x04":
-            #   return
+            data = read_stdin(STDIN_FILENO)
             if data:
                 print("-> ", data, file=sys.stderr)
-                _writen(child_fd, data)
+                write_all(child_fd, data)
 
         if pipe_fd in rfds:
             return
@@ -145,7 +157,10 @@ def spawn(argv):
 
     pid, fd = pty.fork()
     if pid == CHILD:
+        os.environ.setdefault('PS1', '')
         os.execlp(argv[0], *argv)
+
+    fcntl.ioctl(fd, tty.TIOCPKT, "    ")
 
     return pid, fd
 
@@ -153,14 +168,7 @@ pid, fd = spawn(["sh"])
 
 print("pid", pid, file=sys.stderr)
 
-p = os.pipe()
-
-flags = fcntl.fcntl(p[0], fcntl.F_GETFL)
-fcntl.fcntl(p[0], fcntl.F_SETFL, flags | os.O_NONBLOCK)
-
-flags = fcntl.fcntl(p[1], fcntl.F_GETFL)
-fcntl.fcntl(p[1], fcntl.F_SETFL, flags | os.O_NONBLOCK)
-
+pfds = pipe()
 status = 0
 
 def sigchld(signum, frame):
@@ -171,7 +179,7 @@ def sigchld(signum, frame):
     print(pid, status, signum, frame, file=sys.stderr)
 
     if cpid == pid:
-        _writen(p[1], b"x")
+        write_all(pfds[1], b"x")
 
 signal.signal(signal.SIGCHLD, sigchld)
 
@@ -182,15 +190,12 @@ try:
 except tty.error:    # This is the same as termios.error
     restore = False
 
-fcntl.ioctl(fd, tty.TIOCPKT, "    ")
-
 try:
-    _copy(fd, p[0], _pkt_read, _read)
+    run(fd, pfds[0])
 finally:
     if restore:
         tty.tcsetattr(STDIN_FILENO, tty.TCSAFLUSH, mode)
 
 os.close(fd)
 
-status = os.waitstatus_to_exitcode(status)
-sys.exit(status)
+sys.exit(os.waitstatus_to_exitcode(status))
