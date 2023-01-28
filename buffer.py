@@ -21,13 +21,30 @@ def clip(maximum, minimum, n):
 # TODO: Make this something more efficient.
 # Memory mapped file or ropes or something.
 class Buffer:
-    def __init__(self, filename=None):
+    def __init__(self, command=False, filename=None):
         self.clear()
 
+        self._cmd = ''
+        self.command = command
         if filename:
             self.filename = filename
             with open(filename, 'r') as file:
                 self.buffer = [line.rstrip("\n\r") for line in file]
+
+    def append(self, data):
+        update = self.row == len(self.buffer) and self.col == len(self.buffer[self.row-1])
+
+        if not self.buffer[len(self.buffer)-1]:
+            self.buffer = self.buffer[:-1]
+
+        self.buffer.extend(line.decode('utf-8') for line in data.splitlines())
+        self.buffer.append('')
+
+        if update:
+            delta = len(self.buffer) - self.row
+            self.y += delta
+            self.row += delta
+            self.col = len(self.buffer[self.row-1])
 
     def clear(self):
         self.buffer = ['']
@@ -38,6 +55,12 @@ class Buffer:
 
     def close(self):
         pass
+
+    def cmd(self):
+        c = self._cmd
+        self._cmd = ''
+
+        return c
 
     def handle(self, key):
         action = bindings.get(key, 'insert_char')
@@ -127,6 +150,11 @@ class Buffer:
 
     def insert_char(self, key):
         if key == '^J':
+            if self.command:
+                self._cmd = '\n'.join(self.buffer)
+                self.clear()
+                return
+
             self.buffer = self.buffer[:self.row-1] + [self.buffer[self.row-1][:self.col]] + [self.buffer[self.row-1][self.col:]] + self.buffer[self.row:]
             self.col = 0
             self.row += 1

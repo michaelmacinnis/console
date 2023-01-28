@@ -17,7 +17,7 @@ class Terminal:
         os.environ.setdefault('ESCDELAY', '50')
 
         self.buffer = buffer.Buffer(filename=filename)
-        self.command = buffer.Buffer()
+        self.command = buffer.Buffer(command=True)
         self.editing = filename is not None
         self.status = ''
 
@@ -52,6 +52,12 @@ class Terminal:
 
         curses.wrapper(main, self)
 
+    def append(self, data):
+        self.buffer.append(data)
+
+    def cmd(self):
+        return self.command.cmd()
+
     def handle(self, key):
         print(repr(key), file=sys.stderr)
 
@@ -61,8 +67,8 @@ class Terminal:
                 id, x, y, z, bstate
             )
 
-            rows, _ = self.stdscr.getmaxyx()
-            self.editing = y < rows - 2
+            #rows, _ = self.stdscr.getmaxyx()
+            #self.editing = y < rows - 2
 
             return True
 
@@ -87,6 +93,7 @@ class Terminal:
         try:
             k = self.stdscr.getch()
             self.status = 'key = {}'.format(k)
+
             return k
         except:
             return -1
@@ -95,12 +102,20 @@ class Terminal:
         k = self._key()
         if k == 27:
             self.stdscr.nodelay(True)
+
             n = self._key()
             if n >= 0:
                 k = 'ALT+' + keyname(n)
+            else:
+                k = 'ESC'
+
             self.stdscr.nodelay(False)
-            return k
-        return keyname(k)
+        else:
+            k = keyname(k)
+
+        self.status = 'key = {}'.format(k)
+
+        return k
 
     def render(self):
         rows, cols = self.stdscr.getmaxyx()

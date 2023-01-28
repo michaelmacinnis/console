@@ -114,41 +114,40 @@ def write_all(fd, data):
         n = os.write(fd, data)
         data = data[n:]
 
-def run(child_fd, pipe_fd):
+def run(in_cb, out_cb):
     """Parent copy loop.
     Copies
             child fd -> standard output   (read_child)
             standard input -> child fd    (read_stdin)"""
-    fds = [STDIN_FILENO, child_fd, pipe_fd]
-    while fds:
-        rfds, _, xfds = select.select(fds, [], fds)
+    fds = [STDIN_FILENO, child_fd, pfds[0]]
+    rfds, _, xfds = select.select(fds, [], fds)
 
-        if child_fd in rfds:
-            # Some OSes signal EOF by returning an empty byte string,
-            # some throw OSErrors.
-            try:
-                data, eof = read_child(child_fd)
-            except OSError:
-                data = None
-            if eof:  # Reached EOF.
-                print("eof", file=sys.stderr)
-                return    # Assume the child process has exited and is
-                          # unreachable, so we clean up.
-            elif data:
-                print("<- ", data, file=sys.stderr)
-                os.write(STDOUT_FILENO, data)
+    if child_fd in rfds:
+        # Handle EOF. Whether an empty byte string or OSError.
+        try:
+            data, eof = read_child(child_fd)
+        except OSError:
+            eof = True
 
-        if STDIN_FILENO in rfds:
-            data = read_stdin(STDIN_FILENO)
-            if data:
-                print("-> ", data, file=sys.stderr)
-                write_all(child_fd, data)
+        if eof:  # Reached EOF.
+            print("eof", file=sys.stderr)
+            # Assume the child process exited or is unreachable.
+            return False
+        elif data:
+            print("<- ", data, file=sys.stderr)
+            out_cb(data)
 
-        if pipe_fd in rfds:
-            return
+    if STDIN_FILENO in rfds:
+        if not in_cb(child_fd):
+            return False
 
-        if child_fd in xfds:
-            print_mode(tty.tcgetattr(child_fd))
+    if pfds[0] in rfds:
+        return False
+
+    if child_fd in xfds:
+        print_mode(tty.tcgetattr(child_fd))
+
+    return True
 
 def spawn(argv):
     """Create a spawned process."""
@@ -164,7 +163,7 @@ def spawn(argv):
 
     return pid, fd
 
-pid, fd = spawn(["sh"])
+pid, child_fd = spawn(["sh"])
 
 print("pid", pid, file=sys.stderr)
 
@@ -183,19 +182,8 @@ def sigchld(signum, frame):
 
 signal.signal(signal.SIGCHLD, sigchld)
 
-try:
-    mode = tty.tcgetattr(STDIN_FILENO)
-    tty.setraw(STDIN_FILENO)
-    restore = True
-except tty.error:    # This is the same as termios.error
-    restore = False
+def cleanup():
+    os.close(child_fd)
+    return os.waitstatus_to_exitcode(status)
 
-try:
-    run(fd, pfds[0])
-finally:
-    if restore:
-        tty.tcsetattr(STDIN_FILENO, tty.TCSAFLUSH, mode)
-
-os.close(fd)
-
-sys.exit(os.waitstatus_to_exitcode(status))
+#sys.exit(cleanup())
