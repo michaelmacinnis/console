@@ -2,8 +2,6 @@ import curses
 import os
 import sys
 
-from ctypes import CDLL, create_string_buffer
-
 import buffer
 
 def getstr(op):
@@ -16,50 +14,43 @@ def keyname(n):
 
 class Terminal:
     def __init__(self, filename=None):
+        os.environ.setdefault('ESCDELAY', '50')
+
         self.buffer = buffer.Buffer(filename=filename)
         self.command = buffer.Buffer()
         self.editing = filename is not None
         self.status = ''
 
-        os.environ.setdefault('ESCDELAY', '50')
+    def Run(self, cycle):
+        def main(stdscr, self):
+            self.stdscr = stdscr
 
-        self.stdscr = curses.initscr()
+            curses.curs_set(2)
+            curses.mousemask(curses.ALL_MOUSE_EVENTS | curses.REPORT_MOUSE_POSITION)
+            curses.raw()
 
-        self.dll = CDLL('/lib/x86_64-linux-gnu/libncursesw.so.6')
+            #print(dir(curses), file=sys.stderr)
+            #print(dir(self.stdscr), file=sys.stderr)
 
-        curses.curs_set(2)
-        curses.mousemask(curses.ALL_MOUSE_EVENTS | curses.REPORT_MOUSE_POSITION)
+            #import ctypes
+            #dll = ctypes.CDLL('/lib/x86_64-linux-gnu/libncursesw.so.6')
 
-        import _curses
+            # Make sure focus in/out are defined.
+            #dll.define_key(b'\x1b[I', 1001)
+            #dll.define_key(b'\x1b[O', 1002)
 
-        print(dir(curses), file=sys.stderr)
-        print(dir(_curses), file=sys.stderr)
-        print(dir(self.stdscr), file=sys.stderr)
+            #print(curses.has_key(1001), file=sys.stderr)
+            #print(curses.has_key(1002), file=sys.stderr)
+            #print('focus in defined', dll.key_defined(b'\x1b[I'), file=sys.stderr)
+            #print('focus out defined', dll.key_defined(b'\x1b[O'), file=sys.stderr)
 
-        curses.cbreak()
-        curses.noecho()
-        curses.raw()
+            while cycle():
+                pass
 
-        self.stdscr.keypad(True)
+            curses.noraw()
+            curses.flushinp()
 
-        # Make sure focus in/out are defined.
-        self.dll.define_key(b'\x1b[I', 1001)
-        self.dll.define_key(b'\x1b[O', 1002)
-
-        print(curses.has_key(1001), file=sys.stderr)
-        print(curses.has_key(1002), file=sys.stderr)
-        print('focus in defined', self.dll.key_defined(b'\x1b[I'), file=sys.stderr)
-        print('focus out defined', self.dll.key_defined(b'\x1b[O'), file=sys.stderr)
-
-    def close(self):
-        self.stdscr.keypad(False)
-
-        curses.noraw()
-        curses.nocbreak()
-        curses.echo()
-
-        curses.endwin()
-        curses.flushinp()
+        curses.wrapper(main, self)
 
     def handle(self, key):
         print(repr(key), file=sys.stderr)
@@ -94,8 +85,7 @@ class Terminal:
 
     def _key(self):
         try:
-            #k = self.stdscr.getch()
-            k = self.dll.getch()
+            k = self.stdscr.getch()
             self.status = 'key = {}'.format(k)
             return k
         except:

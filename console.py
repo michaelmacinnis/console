@@ -10,11 +10,9 @@ if len(sys.argv) == 2:
 
 term = terminal.Terminal(filename=filename)
 
-while True:
+def cycle():
     term.render()
 
-    if not term.handle(term.key()):
-        break
+    return term.handle(term.key())
 
-term.close()
-
+term.Run(cycle)
