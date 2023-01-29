@@ -162,6 +162,13 @@ class Buffer:
             self.y += 1
             return
 
+        if key == '^Q':
+            if self.command:
+                if len(self.buffer) == 1 and not len(self.buffer[0]):
+                    self._cmd = '\x04'
+                    self.clear()
+                    return
+
         if len(key) == 1 and curses.ascii.isprint(ord(key)):
             line = self.buffer[self.row-1]
             self.buffer[self.row-1] = line[:self.col] + key + line[self.col:]
