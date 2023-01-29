@@ -24,7 +24,7 @@ class Terminal:
         self.editing = filename is not None
         self.status = ''
 
-    def Run(self, cycle):
+    def Run(self, init, cycle):
         def main(stdscr, self):
             self.stdscr = stdscr
 
@@ -49,6 +49,7 @@ class Terminal:
             #print('focus in defined', dll.key_defined(b'\x1b[I'), file=sys.stderr)
             #print('focus out defined', dll.key_defined(b'\x1b[O'), file=sys.stderr)
 
+            init()
             while cycle():
                 pass
 
@@ -124,7 +125,7 @@ class Terminal:
 
         return k
 
-    def render(self, resize_cb):
+    def render(self):
         rows, cols = self.stdscr.getmaxyx()
 
         self.stdscr.clear()

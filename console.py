@@ -24,12 +24,13 @@ def out_cb(data):
     term.append(data)
 
 def cycle():
-    term.render(shell.resize)
+    if shell.canonical:
+        term.render()
 
     return shell.run(in_cb, out_cb)
 
 shell.on_resize(terminal.resize)
 
-term.Run(cycle)
+term.Run(shell.resize, cycle)
 
 shell.cleanup()

@@ -78,8 +78,15 @@ def pipe():
 
     return p
 
+canonical = True
+
 def print_mode(lst):
     print("mode change:", file=sys.stderr)
+
+    global canonical
+    canonical = lst[3] & tty.ICANON > 0
+    if not canonical:
+        resize()
 
     modes = [input_modes, output_modes, control_modes, local_modes]
     for i in range(4):
@@ -109,7 +116,10 @@ def read_stdin(fd):
 
     return b
 
-def resize(rows, cols):
+def resize():
+    cols, rows = os.get_terminal_size()
+    print("TERMINAL SIZE =", cols, "x", rows, file=sys.stderr)
+    resize_cb(rows, cols)
     w = struct.pack('HHHH', rows, cols, 0, 0)
     fcntl.ioctl(child_fd, tty.TIOCSWINSZ, w)
 
@@ -142,11 +152,19 @@ def run(in_cb, out_cb):
             return False
         elif data:
             print("<- ", data, file=sys.stderr)
-            out_cb(data)
+            if canonical:
+                out_cb(data)
+            else:
+                write_all(STDOUT_FILENO, data)
 
     if STDIN_FILENO in rfds:
-        if not in_cb(child_fd):
-            return False
+        if canonical:
+            if not in_cb(child_fd):
+                return False
+        else:
+            data = read_stdin(STDIN_FILENO)
+            if data:
+                write_all(child_fd, data)
 
     if pfds[0] in rfds:
         data = os.read(pfds[0], 1024)
@@ -193,8 +211,7 @@ def on_resize(resize_func):
     resize_cb = resize_func
 
 def sigwinch(signum, frame):
-    cols, rows = os.get_terminal_size()
-    resize_cb(rows, cols)
+    resize()
     print("SIGWINCH", file=sys.stderr)
     write_all(pfds[1], b"r")
 
