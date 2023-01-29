@@ -12,6 +12,9 @@ def keyname(n):
         return ''
     return curses.keyname(n).decode('utf-8')
 
+def resize(rows, cols):
+    curses.resizeterm(rows, cols)
+
 class Terminal:
     def __init__(self, filename=None):
         os.environ.setdefault('ESCDELAY', '50')
@@ -32,8 +35,10 @@ class Terminal:
             #print(dir(curses), file=sys.stderr)
             #print(dir(self.stdscr), file=sys.stderr)
 
-            #import ctypes
-            #dll = ctypes.CDLL('/lib/x86_64-linux-gnu/libncursesw.so.6')
+            import ctypes
+            dll = ctypes.CDLL('/lib/x86_64-linux-gnu/libncursesw.so.6')
+
+            self.dll = dll
 
             # Make sure focus in/out are defined.
             #dll.define_key(b'\x1b[I', 1001)
@@ -92,7 +97,7 @@ class Terminal:
     def _key(self):
         try:
             k = self.stdscr.getch()
-            self.status = 'key = {}'.format(k)
+            print("KEY =", k, file=sys.stderr)
 
             return k
         except:
@@ -100,7 +105,9 @@ class Terminal:
 
     def key(self):
         k = self._key()
-        if k == 27:
+        if k == curses.KEY_RESIZE:
+            k = 'KEY_RESIZE'
+        elif k == 27:
             self.stdscr.nodelay(True)
 
             n = self._key()
@@ -117,8 +124,9 @@ class Terminal:
 
         return k
 
-    def render(self):
+    def render(self, resize_cb):
         rows, cols = self.stdscr.getmaxyx()
+
         self.stdscr.clear()
 
         if rows > 1:

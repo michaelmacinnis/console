@@ -5,6 +5,7 @@ import os
 import pty
 import select
 import signal
+import struct
 import sys
 import tty
 
@@ -108,6 +109,10 @@ def read_stdin(fd):
 
     return b
 
+def resize(rows, cols):
+    w = struct.pack('HHHH', rows, cols, 0, 0)
+    fcntl.ioctl(child_fd, tty.TIOCSWINSZ, w)
+
 def write_all(fd, data):
     """Write all the data to a descriptor."""
     while data:
@@ -121,6 +126,8 @@ def run(in_cb, out_cb):
             standard input -> child fd    (read_stdin)"""
     fds = [STDIN_FILENO, child_fd, pfds[0]]
     rfds, _, xfds = select.select(fds, [], fds)
+
+    print("got something...", rfds, xfds, file=sys.stderr)
 
     if child_fd in rfds:
         # Handle EOF. Whether an empty byte string or OSError.
@@ -142,7 +149,9 @@ def run(in_cb, out_cb):
             return False
 
     if pfds[0] in rfds:
-        return False
+        data = os.read(pfds[0], 1024)
+        if data == b'x':
+            return False
 
     if child_fd in xfds:
         print_mode(tty.tcgetattr(child_fd))
@@ -174,13 +183,23 @@ def sigchld(signum, frame):
     global status
 
     cpid, status = os.wait()
-
-    print(pid, status, signum, frame, file=sys.stderr)
-
     if cpid == pid:
         write_all(pfds[1], b"x")
 
+resize_cb = lambda: None
+
+def on_resize(resize_func):
+    global resize_cb
+    resize_cb = resize_func
+
+def sigwinch(signum, frame):
+    cols, rows = os.get_terminal_size()
+    resize_cb(rows, cols)
+    print("SIGWINCH", file=sys.stderr)
+    write_all(pfds[1], b"r")
+
 signal.signal(signal.SIGCHLD, sigchld)
+signal.signal(signal.SIGWINCH, sigwinch)
 
 def cleanup():
     os.close(child_fd)

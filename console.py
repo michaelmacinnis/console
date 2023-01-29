@@ -24,9 +24,11 @@ def out_cb(data):
     term.append(data)
 
 def cycle():
-    term.render()
+    term.render(shell.resize)
 
     return shell.run(in_cb, out_cb)
+
+shell.on_resize(terminal.resize)
 
 term.Run(cycle)
 
