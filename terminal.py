@@ -28,7 +28,6 @@ class Terminal:
         def main(stdscr, self):
             self.stdscr = stdscr
 
-            curses.curs_set(2)
             curses.mousemask(curses.ALL_MOUSE_EVENTS | curses.REPORT_MOUSE_POSITION)
             curses.raw()
 
@@ -126,6 +125,10 @@ class Terminal:
         return k
 
     def render(self):
+        # After running some programs (like top) the cursor disappears.
+        # Hiding the cursor ...
+        curses.curs_set(0)
+
         rows, cols = self.stdscr.getmaxyx()
 
         self.stdscr.clear()
@@ -141,6 +144,9 @@ class Terminal:
 
             if not self.editing:
                 self.command.render(self.stdscr, rows, n, cols)
+
+        # ... and then showing it again, seems to fix the problem.
+        curses.curs_set(2)
 
         self.stdscr.refresh()
 

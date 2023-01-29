@@ -9,6 +9,8 @@ filename = None
 if len(sys.argv) == 2:
     filename = sys.argv[1]
 
+# What, from shell, makes sense to bring into this file?
+
 term = terminal.Terminal(filename=filename)
 
 def in_cb(fd):
