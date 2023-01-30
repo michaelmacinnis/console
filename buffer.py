@@ -3,6 +3,8 @@ import curses.ascii
 import os
 import sys
 
+import debug
+
 bindings = {
     "KEY_BACKSPACE": "delete_char",
     "KEY_DOWN": "cursor_down",
@@ -73,56 +75,53 @@ class Buffer:
 
         getattr(self, action)(key)
 
-        print("after", action, file=sys.stderr)
+        debug.log("after", action)
         self.print()
 
     def print(self):
-        print(self.buffer, file=sys.stderr)
+        debug.log(self.buffer)
 
     def render(self, stdscr, offset, maxy, maxx):
-        print("rendering", maxx, "x", maxy, file=sys.stderr)
-        print("buffer cursor at", str(self.col) + "," + str(self.row), file=sys.stderr)
-        print("screen cursor at", str(self.x) + "," + str(self.y), file=sys.stderr)
+        debug.log("rendering", maxx, "x", maxy)
+        debug.log("buffer cursor at", str(self.col) + "," + str(self.row))
+        debug.log("screen cursor at", str(self.x) + "," + str(self.y))
 
         n = adjust(len(self.buffer), 1, self.row)
         self.row += n
         self.y += n
 
-        print("buffer cursor at", str(self.col) + "," + str(self.row), file=sys.stderr)
+        debug.log("buffer cursor at", str(self.col) + "," + str(self.row))
 
         n = adjust(len(self.buffer[self.row - 1]), 0, self.col)
         self.col += n
         self.x += n
 
-        print(
+        debug.log(
             "adjusted buffer cursor",
             str(self.col) + "," + str(self.row),
-            file=sys.stderr,
         )
-        print(
-            "adjusted screen cursor", str(self.x) + "," + str(self.y), file=sys.stderr
-        )
+        debug.log("adjusted screen cursor", str(self.x) + "," + str(self.y))
 
         self.x = clip(maxx - 1, 0, self.x)
         self.y = clip(maxy - 1, 0, self.y)
 
-        print("clipped screen cursor", str(self.x) + "," + str(self.y), file=sys.stderr)
+        debug.log("clipped screen cursor", str(self.x) + "," + str(self.y))
 
         col = max(1, self.col - self.x + 1)
         row = max(1, self.row - self.y)
 
         last = self.y + offset
-        print("adjusted", str(col) + "," + str(row), file=sys.stderr)
+        debug.log("adjusted", str(col) + "," + str(row))
 
         for line in self.buffer[row - 1 :][:maxy]:
-            print("line", offset, row - 1, line, file=sys.stderr)
+            debug.log("line", offset, row - 1, line)
 
             stdscr.addstr(offset, 0, line[col - 1 :][: maxx - 1])
             offset += 1
 
         stdscr.move(last, self.x)
 
-        print(file=sys.stderr)
+        debug.log()
 
     # Actions.
     def cursor_down(self, key):

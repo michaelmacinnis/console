@@ -9,16 +9,15 @@ import struct
 import sys
 import tty
 
+import debug
+import mode
+import options
 import terminal
 
 
 # Constants.
 STDIN_FILENO = 0
 STDOUT_FILENO = 1
-
-
-# Globals.
-status = 0
 
 
 def canonical_mode(lst):
@@ -30,6 +29,8 @@ def main(term):
     Copies
             child fd -> standard output   (read_child)
             standard input -> child fd    (read_fd)"""
+    resize()
+
     canonical = True
 
     while True:
@@ -39,7 +40,7 @@ def main(term):
         fds = [STDIN_FILENO, child_fd, pfds[0]]
         rfds, _, xfds = select.select(fds, [], fds)
 
-        print("got something...", rfds, xfds, file=sys.stderr)
+        debug.log("got something...", rfds, xfds)
 
         if child_fd in rfds:
             # Handle EOF. Whether an empty byte string or OSError.
@@ -49,13 +50,13 @@ def main(term):
                 eof = True
 
             if eof:  # Reached EOF.
-                print("eof", file=sys.stderr)
+                debug.log("eof")
 
                 # Assume the child process exited or is unreachable.
                 break
 
             elif data:
-                print("<- ", data, file=sys.stderr)
+                debug.log("<- ", data)
                 if canonical:
                     term.append(data)
                 else:
@@ -81,7 +82,7 @@ def main(term):
             if not canonical:
                 resize()
 
-            # print_mode(tty.tcgetattr(child_fd))
+            mode.print(tty.tcgetattr(child_fd))
 
 
 def pipe():
@@ -100,7 +101,7 @@ def read_child(fd):
     """Default read function."""
     b = os.read(fd, 1024)
 
-    print("pkt_read", len(b), b[0] if len(b) else None, file=sys.stderr)
+    debug.log("pkt_read", len(b), b[0] if len(b) else None)
     if b:
         data = b[1:]
         return data, not b[0] and not data
@@ -112,7 +113,7 @@ def read_fd(fd):
     """Default read function."""
     b = os.read(fd, 1024)
 
-    print("read", len(b), b[0] if len(b) else None, file=sys.stderr)
+    debug.log("read", len(b), b[0] if len(b) else None)
 
     return b
 
@@ -120,7 +121,7 @@ def read_fd(fd):
 def resize():
     cols, rows = os.get_terminal_size()
 
-    print("TERMINAL SIZE =", cols, "x", rows, file=sys.stderr)
+    debug.log("TERMINAL SIZE =", cols, "x", rows)
 
     # Tell terminal (curses) about the new size.
     terminal.resize(rows, cols)
@@ -131,16 +132,19 @@ def resize():
 
 
 def sigchld(signum, frame):
-    global status
+    global exitcode
 
     cpid, status = os.wait()
     if cpid == pid:
+        exitcode = os.waitstatus_to_exitcode(status)
         write_all(pfds[1], b"x")
 
 
 def sigwinch(signum, frame):
     resize()
-    print("SIGWINCH", file=sys.stderr)
+
+    debug.log("SIGWINCH")
+
     write_all(pfds[1], b"r")
 
 
@@ -177,87 +181,18 @@ def write_all(fd, data):
         data = data[n:]
 
 
-filename = None
-if len(sys.argv) == 2:
-    filename = sys.argv[1]
-
-pid, child_fd = spawn(["sh"])
+exitcode = 0
 
 pfds = pipe()
+
+pid, child_fd = spawn(["sh"])
 
 signal.signal(signal.SIGCHLD, sigchld)
 signal.signal(signal.SIGWINCH, sigwinch)
 
-term = terminal.Terminal(filename=filename)
+term = terminal.Terminal(filename=options.parsed["FILE"])
 term.Run(main)
 
 os.close(child_fd)
-print(os.waitstatus_to_exitcode(status))
 
-
-# Unused.
-
-control_modes = {
-    tty.CSIZE: "Character size",
-    tty.CSTOPB: "Send two stop bits, else one",
-    tty.CREAD: "Enable receiver",
-    tty.PARENB: "Parity enable",
-    tty.PARODD: "Odd parity, else even",
-    tty.HUPCL: "Hang up on last close",
-    tty.CLOCAL: "Ignore modem status lines",
-}
-
-input_modes = {
-    tty.BRKINT: "Signal interrupt on break",
-    tty.ICRNL: "Map CR to NL on input",
-    tty.IGNBRK: "Ignore break condition",
-    tty.IGNCR: "Ignore CR",
-    tty.IGNPAR: "Ignore characters with parity errors",
-    tty.INLCR: "Map NL to CR on input",
-    tty.INPCK: "Enable input parity check",
-    tty.ISTRIP: "Strip character",
-    tty.IXANY: "Enable any character to restart output",
-    tty.IXOFF: "Enable start/stop input control",
-    tty.IXON: "Enable start/stop output control",
-    tty.PARMRK: "Mark parity errors",
-}
-
-local_modes = {
-    tty.ECHO: "Enable echo",
-    tty.ECHOE: "Echo erase character as error-correcting backspace",
-    tty.ECHOK: "Echo KILL",
-    tty.ECHONL: "Echo NL",
-    tty.ICANON: "Canonical input (erase and kill processing)",
-    tty.IEXTEN: "Enable extended input character processing",
-    tty.ISIG: "Enable signals",
-    tty.NOFLSH: "Disable flush after interrupt or quit",
-    tty.TOSTOP: "Send SIGTTOU for background output",
-}
-
-output_modes = {
-    tty.OPOST: "Post-process output",
-    tty.ONLCR: "Map NL to CR-NL on output",
-    tty.OCRNL: "Map CR to NL on output",
-    tty.ONOCR: "No CR output at column 0",
-    tty.ONLRET: "NL performs CR function",
-    tty.OFILL: "Use fill characters for delay",
-    tty.NLDLY: "Newline delay",
-    tty.CRDLY: "Carriage-return delay",
-    tty.TABDLY: "Horizontal-tab delay",
-    tty.BSDLY: "Backspace delay",
-    tty.VTDLY: "Vertical-tab delay",
-    tty.FFDLY: "Form-feed delay",
-}
-
-
-def print_mode(lst):
-    print("mode change:", file=sys.stderr)
-
-    modes = [input_modes, output_modes, control_modes, local_modes]
-    for i in range(4):
-        flags = lst[i]
-        for flag, description in modes[i].items():
-            if flag & flags:
-                print(description, file=sys.stderr)
-
-    print(file=sys.stderr)
+sys.exit(exitcode)

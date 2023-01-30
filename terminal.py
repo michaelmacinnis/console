@@ -3,6 +3,7 @@ import os
 import sys
 
 import buffer
+import debug
 
 
 def getstr(op):
@@ -49,7 +50,7 @@ class Terminal:
         return self.command.cmd()
 
     def handle(self, key):
-        print(repr(key), file=sys.stderr)
+        debug.log(repr(key))
 
         if key == "KEY_MOUSE":
             id, x, y, z, bstate = curses.getmouse()
@@ -82,7 +83,7 @@ class Terminal:
     def _key(self):
         try:
             k = self.stdscr.getch()
-            print("KEY =", k, file=sys.stderr)
+            debug.log("KEY =", k)
 
             return k
         except:
