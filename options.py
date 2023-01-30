@@ -1,4 +1,4 @@
-"""Console.
+"""Console - a less surprising terminal experience.
 
 Usage:
   console.py [-d] [FILE]
