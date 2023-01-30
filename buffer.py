@@ -29,8 +29,9 @@ class Buffer:
 
         self._cmd = ""
         self.command = command
+        self.filename = filename
+
         if filename:
-            self.filename = filename
             with open(filename, "r") as file:
                 self.buffer = [line.rstrip("\n\r") for line in file]
 

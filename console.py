@@ -11,15 +11,21 @@ import tty
 
 import terminal
 
+
+# Constants.
 STDIN_FILENO = 0
 STDOUT_FILENO = 1
+
+
+# Globals.
+status = 0
 
 
 def canonical_mode(lst):
     return lst[3] & tty.ICANON > 0
 
 
-def main():
+def main(term):
     """Parent copy loop.
     Copies
             child fd -> standard output   (read_child)
@@ -57,7 +63,7 @@ def main():
 
         if STDIN_FILENO in rfds:
             if canonical:
-                if not terminal_input(child_fd):
+                if not terminal_input(term, child_fd):
                     break
 
             else:
@@ -154,7 +160,7 @@ def spawn(argv):
     return pid, fd
 
 
-def terminal_input(fd):
+def terminal_input(term, fd):
     res = term.handle(term.key())
     if res:
         cmd = term.cmd()
@@ -178,7 +184,6 @@ if len(sys.argv) == 2:
 pid, child_fd = spawn(["sh"])
 
 pfds = pipe()
-status = 0
 
 signal.signal(signal.SIGCHLD, sigchld)
 signal.signal(signal.SIGWINCH, sigwinch)

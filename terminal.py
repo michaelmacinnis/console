@@ -35,7 +35,7 @@ class Terminal:
             curses.mousemask(curses.ALL_MOUSE_EVENTS | curses.REPORT_MOUSE_POSITION)
             curses.raw()
 
-            main()
+            main(self)
 
             curses.noraw()
             curses.flushinp()
