@@ -62,19 +62,14 @@ def resize():
     fcntl.ioctl(child_fd, tty.TIOCSWINSZ, w)
 
 
-def write_all(fd, data):
-    """Write all the data to a descriptor."""
-    while data:
-        n = os.write(fd, data)
-        data = data[n:]
-
-
-def run(in_cb, out_cb):
+def run():
     """Parent copy loop.
     Copies
             child fd -> standard output   (read_child)
             standard input -> child fd    (read_fd)"""
     global canonical
+    if canonical:
+        term.render()
 
     fds = [STDIN_FILENO, child_fd, pfds[0]]
     rfds, _, xfds = select.select(fds, [], fds)
@@ -95,13 +90,13 @@ def run(in_cb, out_cb):
         elif data:
             print("<- ", data, file=sys.stderr)
             if canonical:
-                out_cb(data)
+                term.append(data)
             else:
                 write_all(STDOUT_FILENO, data)
 
     if STDIN_FILENO in rfds:
         if canonical:
-            if not in_cb(child_fd):
+            if not terminal_input(child_fd):
                 return False
         else:
             data = read_fd(STDIN_FILENO)
@@ -123,6 +118,20 @@ def run(in_cb, out_cb):
     return True
 
 
+def sigchld(signum, frame):
+    global status
+
+    cpid, status = os.wait()
+    if cpid == pid:
+        write_all(pfds[1], b"x")
+
+
+def sigwinch(signum, frame):
+    resize()
+    print("SIGWINCH", file=sys.stderr)
+    write_all(pfds[1], b"r")
+
+
 def spawn(argv):
     """Create a spawned process."""
     if type(argv) == type(""):
@@ -139,45 +148,7 @@ def spawn(argv):
     return pid, fd
 
 
-pid, child_fd = spawn(["sh"])
-
-print("pid", pid, file=sys.stderr)
-
-pfds = pipe()
-status = 0
-
-
-def sigchld(signum, frame):
-    global status
-
-    cpid, status = os.wait()
-    if cpid == pid:
-        write_all(pfds[1], b"x")
-
-
-def sigwinch(signum, frame):
-    resize()
-    print("SIGWINCH", file=sys.stderr)
-    write_all(pfds[1], b"r")
-
-
-signal.signal(signal.SIGCHLD, sigchld)
-signal.signal(signal.SIGWINCH, sigwinch)
-
-
-def cleanup():
-    os.close(child_fd)
-    return os.waitstatus_to_exitcode(status)
-
-
-filename = None
-if len(sys.argv) == 2:
-    filename = sys.argv[1]
-
-term = terminal.Terminal(filename=filename)
-
-
-def in_cb(fd):
+def terminal_input(fd):
     res = term.handle(term.key())
     if res:
         cmd = term.cmd()
@@ -187,20 +158,30 @@ def in_cb(fd):
     return res
 
 
-def out_cb(data):
-    term.append(data)
+def write_all(fd, data):
+    """Write all the data to a descriptor."""
+    while data:
+        n = os.write(fd, data)
+        data = data[n:]
 
 
-def cycle():
-    if canonical:
-        term.render()
+filename = None
+if len(sys.argv) == 2:
+    filename = sys.argv[1]
 
-    return run(in_cb, out_cb)
+pid, child_fd = spawn(["sh"])
 
+pfds = pipe()
+status = 0
 
-term.Run(resize, cycle)
+signal.signal(signal.SIGCHLD, sigchld)
+signal.signal(signal.SIGWINCH, sigwinch)
 
-cleanup()
+term = terminal.Terminal(filename=filename)
+term.Run(resize, run)
+
+os.close(child_fd)
+print(os.waitstatus_to_exitcode(status))
 
 
 # Unused.
