@@ -16,6 +16,7 @@ STDOUT_FILENO = 1
 
 canonical = True
 
+
 def canonical_mode(lst):
     return lst[3] & tty.ICANON > 0
 
@@ -56,7 +57,7 @@ def read_fd(fd):
 def resize():
     cols, rows = os.get_terminal_size()
     print("TERMINAL SIZE =", cols, "x", rows, file=sys.stderr)
-    resize_cb(rows, cols)
+    terminal.resize(rows, cols)
     w = struct.pack("HHHH", rows, cols, 0, 0)
     fcntl.ioctl(child_fd, tty.TIOCSWINSZ, w)
 
@@ -117,7 +118,7 @@ def run(in_cb, out_cb):
         if not canonical:
             resize()
 
-        #print_mode(tty.tcgetattr(child_fd))
+        # print_mode(tty.tcgetattr(child_fd))
 
     return True
 
@@ -152,14 +153,6 @@ def sigchld(signum, frame):
     cpid, status = os.wait()
     if cpid == pid:
         write_all(pfds[1], b"x")
-
-
-resize_cb = lambda: None
-
-
-def on_resize(resize_func):
-    global resize_cb
-    resize_cb = resize_func
 
 
 def sigwinch(signum, frame):
@@ -204,8 +197,6 @@ def cycle():
 
     return run(in_cb, out_cb)
 
-
-on_resize(terminal.resize)
 
 term.Run(resize, cycle)
 
@@ -278,5 +269,3 @@ def print_mode(lst):
                 print(description, file=sys.stderr)
 
     print(file=sys.stderr)
-
-
