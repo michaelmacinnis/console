@@ -14,11 +14,68 @@ import terminal
 STDIN_FILENO = 0
 STDOUT_FILENO = 1
 
-canonical = True
-
 
 def canonical_mode(lst):
     return lst[3] & tty.ICANON > 0
+
+
+def main():
+    """Parent copy loop.
+    Copies
+            child fd -> standard output   (read_child)
+            standard input -> child fd    (read_fd)"""
+    canonical = True
+
+    while True:
+        if canonical:
+            term.render()
+
+        fds = [STDIN_FILENO, child_fd, pfds[0]]
+        rfds, _, xfds = select.select(fds, [], fds)
+
+        print("got something...", rfds, xfds, file=sys.stderr)
+
+        if child_fd in rfds:
+            # Handle EOF. Whether an empty byte string or OSError.
+            try:
+                data, eof = read_child(child_fd)
+            except OSError:
+                eof = True
+
+            if eof:  # Reached EOF.
+                print("eof", file=sys.stderr)
+
+                # Assume the child process exited or is unreachable.
+                break
+
+            elif data:
+                print("<- ", data, file=sys.stderr)
+                if canonical:
+                    term.append(data)
+                else:
+                    write_all(STDOUT_FILENO, data)
+
+        if STDIN_FILENO in rfds:
+            if canonical:
+                if not terminal_input(child_fd):
+                    break
+
+            else:
+                data = read_fd(STDIN_FILENO)
+                if data:
+                    write_all(child_fd, data)
+
+        if pfds[0] in rfds:
+            data = os.read(pfds[0], 1024)
+            if data == b"x":
+                break
+
+        if child_fd in xfds:
+            canonical = canonical_mode(tty.tcgetattr(child_fd))
+            if not canonical:
+                resize()
+
+            # print_mode(tty.tcgetattr(child_fd))
 
 
 def pipe():
@@ -56,66 +113,15 @@ def read_fd(fd):
 
 def resize():
     cols, rows = os.get_terminal_size()
+
     print("TERMINAL SIZE =", cols, "x", rows, file=sys.stderr)
+
+    # Tell terminal (curses) about the new size.
     terminal.resize(rows, cols)
+
+    # Tell pseudo-terminal (child process) about the new size.
     w = struct.pack("HHHH", rows, cols, 0, 0)
     fcntl.ioctl(child_fd, tty.TIOCSWINSZ, w)
-
-
-def run():
-    """Parent copy loop.
-    Copies
-            child fd -> standard output   (read_child)
-            standard input -> child fd    (read_fd)"""
-    global canonical
-    if canonical:
-        term.render()
-
-    fds = [STDIN_FILENO, child_fd, pfds[0]]
-    rfds, _, xfds = select.select(fds, [], fds)
-
-    print("got something...", rfds, xfds, file=sys.stderr)
-
-    if child_fd in rfds:
-        # Handle EOF. Whether an empty byte string or OSError.
-        try:
-            data, eof = read_child(child_fd)
-        except OSError:
-            eof = True
-
-        if eof:  # Reached EOF.
-            print("eof", file=sys.stderr)
-            # Assume the child process exited or is unreachable.
-            return False
-        elif data:
-            print("<- ", data, file=sys.stderr)
-            if canonical:
-                term.append(data)
-            else:
-                write_all(STDOUT_FILENO, data)
-
-    if STDIN_FILENO in rfds:
-        if canonical:
-            if not terminal_input(child_fd):
-                return False
-        else:
-            data = read_fd(STDIN_FILENO)
-            if data:
-                write_all(child_fd, data)
-
-    if pfds[0] in rfds:
-        data = os.read(pfds[0], 1024)
-        if data == b"x":
-            return False
-
-    if child_fd in xfds:
-        canonical = canonical_mode(tty.tcgetattr(child_fd))
-        if not canonical:
-            resize()
-
-        # print_mode(tty.tcgetattr(child_fd))
-
-    return True
 
 
 def sigchld(signum, frame):
@@ -178,7 +184,7 @@ signal.signal(signal.SIGCHLD, sigchld)
 signal.signal(signal.SIGWINCH, sigwinch)
 
 term = terminal.Terminal(filename=filename)
-term.Run(resize, run)
+term.Run(main)
 
 os.close(child_fd)
 print(os.waitstatus_to_exitcode(status))

@@ -28,39 +28,19 @@ class Terminal:
         self.editing = filename is not None
         self.status = ""
 
-    def Run(self, init, cycle):
-        def main(stdscr, self):
+    def Run(self, main):
+        def wrapper(stdscr, self):
             self.stdscr = stdscr
 
             curses.mousemask(curses.ALL_MOUSE_EVENTS | curses.REPORT_MOUSE_POSITION)
             curses.raw()
 
-            # print(dir(curses), file=sys.stderr)
-            # print(dir(self.stdscr), file=sys.stderr)
-
-            import ctypes
-
-            dll = ctypes.CDLL("/lib/x86_64-linux-gnu/libncursesw.so.6")
-
-            self.dll = dll
-
-            # Make sure focus in/out are defined.
-            # dll.define_key(b'\x1b[I', 1001)
-            # dll.define_key(b'\x1b[O', 1002)
-
-            # print(curses.has_key(1001), file=sys.stderr)
-            # print(curses.has_key(1002), file=sys.stderr)
-            # print('focus in defined', dll.key_defined(b'\x1b[I'), file=sys.stderr)
-            # print('focus out defined', dll.key_defined(b'\x1b[O'), file=sys.stderr)
-
-            init()
-            while cycle():
-                pass
+            main()
 
             curses.noraw()
             curses.flushinp()
 
-        curses.wrapper(main, self)
+        curses.wrapper(wrapper, self)
 
     def append(self, data):
         self.buffer.append(data)
