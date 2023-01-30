@@ -16,56 +16,57 @@ STDOUT_FILENO = 1
 STDERR_FILENO = 2
 
 control_modes = {
-    tty.CSIZE:  "Character size",
+    tty.CSIZE: "Character size",
     tty.CSTOPB: "Send two stop bits, else one",
-    tty.CREAD:  "Enable receiver",
+    tty.CREAD: "Enable receiver",
     tty.PARENB: "Parity enable",
     tty.PARODD: "Odd parity, else even",
-    tty.HUPCL:  "Hang up on last close",
+    tty.HUPCL: "Hang up on last close",
     tty.CLOCAL: "Ignore modem status lines",
 }
 
 input_modes = {
     tty.BRKINT: "Signal interrupt on break",
-    tty.ICRNL:  "Map CR to NL on input",
+    tty.ICRNL: "Map CR to NL on input",
     tty.IGNBRK: "Ignore break condition",
-    tty.IGNCR:  "Ignore CR",
+    tty.IGNCR: "Ignore CR",
     tty.IGNPAR: "Ignore characters with parity errors",
-    tty.INLCR:  "Map NL to CR on input",
-    tty.INPCK:  "Enable input parity check",
+    tty.INLCR: "Map NL to CR on input",
+    tty.INPCK: "Enable input parity check",
     tty.ISTRIP: "Strip character",
-    tty.IXANY:  "Enable any character to restart output",
-    tty.IXOFF:  "Enable start/stop input control",
-    tty.IXON:   "Enable start/stop output control",
+    tty.IXANY: "Enable any character to restart output",
+    tty.IXOFF: "Enable start/stop input control",
+    tty.IXON: "Enable start/stop output control",
     tty.PARMRK: "Mark parity errors",
 }
 
 local_modes = {
-    tty.ECHO:   "Enable echo",
-    tty.ECHOE:  "Echo erase character as error-correcting backspace",
-    tty.ECHOK:  "Echo KILL",
+    tty.ECHO: "Enable echo",
+    tty.ECHOE: "Echo erase character as error-correcting backspace",
+    tty.ECHOK: "Echo KILL",
     tty.ECHONL: "Echo NL",
     tty.ICANON: "Canonical input (erase and kill processing)",
     tty.IEXTEN: "Enable extended input character processing",
-    tty.ISIG:   "Enable signals",
+    tty.ISIG: "Enable signals",
     tty.NOFLSH: "Disable flush after interrupt or quit",
     tty.TOSTOP: "Send SIGTTOU for background output",
 }
 
 output_modes = {
-    tty.OPOST:  "Post-process output",
-    tty.ONLCR:  "Map NL to CR-NL on output",
-    tty.OCRNL:  "Map CR to NL on output",
-    tty.ONOCR:  "No CR output at column 0",
+    tty.OPOST: "Post-process output",
+    tty.ONLCR: "Map NL to CR-NL on output",
+    tty.OCRNL: "Map CR to NL on output",
+    tty.ONOCR: "No CR output at column 0",
     tty.ONLRET: "NL performs CR function",
-    tty.OFILL:  "Use fill characters for delay",
-    tty.NLDLY:  "Newline delay",
-    tty.CRDLY:  "Carriage-return delay",
+    tty.OFILL: "Use fill characters for delay",
+    tty.NLDLY: "Newline delay",
+    tty.CRDLY: "Carriage-return delay",
     tty.TABDLY: "Horizontal-tab delay",
-    tty.BSDLY:  "Backspace delay",
-    tty.VTDLY:  "Vertical-tab delay",
-    tty.FFDLY:  "Form-feed delay",
+    tty.BSDLY: "Backspace delay",
+    tty.VTDLY: "Vertical-tab delay",
+    tty.FFDLY: "Form-feed delay",
 }
+
 
 def pipe():
     p = os.pipe()
@@ -78,7 +79,9 @@ def pipe():
 
     return p
 
+
 canonical = True
+
 
 def print_mode(lst):
     print("mode change:", file=sys.stderr)
@@ -97,6 +100,7 @@ def print_mode(lst):
 
     print(file=sys.stderr)
 
+
 def read_child(fd):
     """Default read function."""
     b = os.read(fd, 1024)
@@ -108,6 +112,7 @@ def read_child(fd):
 
     return None, False
 
+
 def read_stdin(fd):
     """Default read function."""
     b = os.read(fd, 1024)
@@ -116,18 +121,21 @@ def read_stdin(fd):
 
     return b
 
+
 def resize():
     cols, rows = os.get_terminal_size()
     print("TERMINAL SIZE =", cols, "x", rows, file=sys.stderr)
     resize_cb(rows, cols)
-    w = struct.pack('HHHH', rows, cols, 0, 0)
+    w = struct.pack("HHHH", rows, cols, 0, 0)
     fcntl.ioctl(child_fd, tty.TIOCSWINSZ, w)
+
 
 def write_all(fd, data):
     """Write all the data to a descriptor."""
     while data:
         n = os.write(fd, data)
         data = data[n:]
+
 
 def run(in_cb, out_cb):
     """Parent copy loop.
@@ -168,7 +176,7 @@ def run(in_cb, out_cb):
 
     if pfds[0] in rfds:
         data = os.read(pfds[0], 1024)
-        if data == b'x':
+        if data == b"x":
             return False
 
     if child_fd in xfds:
@@ -176,19 +184,21 @@ def run(in_cb, out_cb):
 
     return True
 
+
 def spawn(argv):
     """Create a spawned process."""
-    if type(argv) == type(''):
+    if type(argv) == type(""):
         argv = (argv,)
 
     pid, fd = pty.fork()
     if pid == CHILD:
-        os.environ.setdefault('PS1', '')
+        os.environ.setdefault("PS1", "")
         os.execlp(argv[0], *argv)
 
     fcntl.ioctl(fd, tty.TIOCPKT, "    ")
 
     return pid, fd
+
 
 pid, child_fd = spawn(["sh"])
 
@@ -197,6 +207,7 @@ print("pid", pid, file=sys.stderr)
 pfds = pipe()
 status = 0
 
+
 def sigchld(signum, frame):
     global status
 
@@ -204,22 +215,28 @@ def sigchld(signum, frame):
     if cpid == pid:
         write_all(pfds[1], b"x")
 
+
 resize_cb = lambda: None
+
 
 def on_resize(resize_func):
     global resize_cb
     resize_cb = resize_func
+
 
 def sigwinch(signum, frame):
     resize()
     print("SIGWINCH", file=sys.stderr)
     write_all(pfds[1], b"r")
 
+
 signal.signal(signal.SIGCHLD, sigchld)
 signal.signal(signal.SIGWINCH, sigwinch)
+
 
 def cleanup():
     os.close(child_fd)
     return os.waitstatus_to_exitcode(status)
 
-#sys.exit(cleanup())
+
+# sys.exit(cleanup())
