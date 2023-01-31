@@ -18,11 +18,36 @@ import terminal
 # Constants.
 STDIN_FILENO = 0
 STDOUT_FILENO = 1
+STDERR_FILENO = 2
 
 
 def canonical_mode(lst):
     return lst[3] & tty.ICANON > 0
 
+
+def fork():
+    # Adapted from Python's pty.fork().
+    upstream_fd, downstream_fd = pty.openpty()
+    pid = os.fork()
+    if not pid:
+        # Child.
+
+        # Establish a new session.
+        os.setsid()
+        os.close(upstream_fd)
+
+        # Slave becomes stdin/stdout/stderr of child.
+        os.dup2(downstream_fd, STDIN_FILENO)
+        os.dup2(downstream_fd, STDOUT_FILENO)
+        os.dup2(downstream_fd, STDERR_FILENO)
+        if downstream_fd > STDERR_FILENO:
+            os.close(downstream_fd)
+
+        # Explicitly open the tty to make it become a controlling tty.
+        os.close(os.open(os.ttyname(STDOUT_FILENO), os.O_RDWR))
+
+    # Parent and child process.
+    return pid, upstream_fd, downstream_fd
 
 def main(term):
     """Parent copy loop.
@@ -37,15 +62,15 @@ def main(term):
         if canonical:
             term.render()
 
-        fds = [STDIN_FILENO, child_fd, pfds[0]]
+        fds = [STDIN_FILENO, upstream_fd, pfds[0]]
         rfds, _, xfds = select.select(fds, [], fds)
 
         debug.log("got something...", rfds, xfds)
 
-        if child_fd in rfds:
+        if upstream_fd in rfds:
             # Handle EOF. Whether an empty byte string or OSError.
             try:
-                data, eof = read_child(child_fd)
+                data, eof = read_child(upstream_fd)
             except OSError:
                 eof = True
 
@@ -64,25 +89,25 @@ def main(term):
 
         if STDIN_FILENO in rfds:
             if canonical:
-                if not terminal_input(term, child_fd):
+                if not terminal_input(term, upstream_fd):
                     break
 
             else:
                 data = read_fd(STDIN_FILENO)
                 if data:
-                    write_all(child_fd, data)
+                    write_all(upstream_fd, data)
 
         if pfds[0] in rfds:
             data = os.read(pfds[0], 1024)
             if data == b"x":
                 break
 
-        if child_fd in xfds:
-            canonical = canonical_mode(tty.tcgetattr(child_fd))
+        if upstream_fd in xfds:
+            canonical = canonical_mode(tty.tcgetattr(upstream_fd))
             if not canonical:
                 resize()
 
-            mode.print(tty.tcgetattr(child_fd))
+            mode.print(tty.tcgetattr(upstream_fd))
 
 
 def pipe():
@@ -128,7 +153,7 @@ def resize():
 
     # Tell pseudo-terminal (child process) about the new size.
     w = struct.pack("HHHH", rows, cols, 0, 0)
-    fcntl.ioctl(child_fd, tty.TIOCSWINSZ, w)
+    fcntl.ioctl(upstream_fd, tty.TIOCSWINSZ, w)
 
 
 def sigchld(signum, frame):
@@ -153,15 +178,15 @@ def spawn(argv):
     if type(argv) == type(""):
         argv = (argv,)
 
-    pid, fd = pty.fork()
+    pid, upstream_fd, downstream_fd = fork()
     if not pid:
         # Child.
         os.environ.setdefault("PS1", "")
         os.execlp(argv[0], *argv)
 
-    fcntl.ioctl(fd, tty.TIOCPKT, "    ")
+    fcntl.ioctl(upstream_fd, tty.TIOCPKT, "    ")
 
-    return pid, fd
+    return pid, upstream_fd, downstream_fd
 
 
 def terminal_input(term, fd):
@@ -185,7 +210,7 @@ exitcode = 0
 
 pfds = pipe()
 
-pid, child_fd = spawn(["sh"])
+pid, upstream_fd, downstream_fd = spawn(["sh"])
 
 signal.signal(signal.SIGCHLD, sigchld)
 signal.signal(signal.SIGWINCH, sigwinch)
@@ -193,6 +218,7 @@ signal.signal(signal.SIGWINCH, sigwinch)
 term = terminal.Terminal(filename=options.parsed["FILE"])
 term.Run(main)
 
-os.close(child_fd)
+os.close(upstream_fd)
+os.close(downstream_fd)
 
 sys.exit(exitcode)
