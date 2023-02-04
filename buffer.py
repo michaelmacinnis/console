@@ -47,7 +47,7 @@ class Buffer:
         if not self.buffer[len(self.buffer) - 1]:
             self.buffer = self.buffer[:-1]
 
-        self.buffer.extend(line.decode("utf-8") for line in data.splitlines())
+        self.buffer.extend(line.decode('utf8') for line in data.splitlines())
         self.buffer.append("")
 
         if update:

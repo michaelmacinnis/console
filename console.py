@@ -16,6 +16,7 @@ import terminal
 
 
 # Constants.
+PS1 = b'i am a shell' # TODO: Replace this with a custom escape sequence.
 STDIN_FILENO = 0
 STDOUT_FILENO = 1
 STDERR_FILENO = 2
@@ -84,10 +85,11 @@ def main(term):
             elif data:
                 debug.log("<- ", data)
                 if canonical:
-                    s = data.split(b'i am a shell')
+                    s = data.split(PS1)
                     if len(s) > 1:
                         term.command.multiline = True
                         data = s[0]
+
                     if data:
                         term.append(data)
                 else:
@@ -187,7 +189,7 @@ def spawn(argv):
     pid, upstream_fd, downstream_fd = fork()
     if not pid:
         # Child.
-        os.environ.setdefault("PS1", "i am a shell")
+        os.environ.setdefault("PS1", PS1.decode('utf8'))
         os.environ.setdefault("PS2", "")
         os.execlp(argv[0], *argv)
 
