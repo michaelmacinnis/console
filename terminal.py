@@ -13,7 +13,7 @@ def getstr(op):
 def keyname(n):
     if n < 0:
         return ""
-    return curses.keyname(n).decode('utf8')
+    return curses.keyname(n).decode("utf8")
 
 
 def resize(rows, cols):
