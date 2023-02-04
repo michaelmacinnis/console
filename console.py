@@ -84,7 +84,12 @@ def main(term):
             elif data:
                 debug.log("<- ", data)
                 if canonical:
-                    term.append(data)
+                    s = data.split(b'i am a shell')
+                    if len(s) > 1:
+                        term.command.multiline = True
+                        data = s[0]
+                    if data:
+                        term.append(data)
                 else:
                     write_all(STDOUT_FILENO, data)
 
@@ -182,7 +187,8 @@ def spawn(argv):
     pid, upstream_fd, downstream_fd = fork()
     if not pid:
         # Child.
-        os.environ.setdefault("PS1", "")
+        os.environ.setdefault("PS1", "i am a shell")
+        os.environ.setdefault("PS2", "")
         os.execlp(argv[0], *argv)
 
     fcntl.ioctl(upstream_fd, tty.TIOCPKT, "    ")
@@ -195,8 +201,7 @@ def terminal_input(term, fd):
     if res:
         cmd = term.cmd()
         if cmd:
-            write_all(fd, cmd.encode("utf-8"))
-            write_all(fd, b"\n")
+            write_all(fd, cmd)
     return res
 
 

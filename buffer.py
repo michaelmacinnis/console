@@ -2,6 +2,7 @@ import curses
 import curses.ascii
 import os
 import sys
+import subprocess
 
 import debug
 
@@ -32,6 +33,7 @@ class Buffer:
         self._cmd = ""
         self.command = command
         self.filename = filename
+        self.multiline = False
 
         if filename:
             with open(filename, "r") as file:
@@ -82,36 +84,36 @@ class Buffer:
         debug.log(self.buffer)
 
     def render(self, stdscr, offset, maxy, maxx):
-        debug.log("rendering", maxx, "x", maxy)
-        debug.log("buffer cursor at", str(self.col) + "," + str(self.row))
-        debug.log("screen cursor at", str(self.x) + "," + str(self.y))
+        #debug.log("rendering", maxx, "x", maxy)
+        #debug.log("buffer cursor at", str(self.col) + "," + str(self.row))
+        #debug.log("screen cursor at", str(self.x) + "," + str(self.y))
 
         n = adjust(len(self.buffer), 1, self.row)
         self.row += n
         self.y += n
 
-        debug.log("buffer cursor at", str(self.col) + "," + str(self.row))
+        #debug.log("buffer cursor at", str(self.col) + "," + str(self.row))
 
         n = adjust(len(self.buffer[self.row - 1]), 0, self.col)
         self.col += n
         self.x += n
 
-        debug.log(
-            "adjusted buffer cursor",
-            str(self.col) + "," + str(self.row),
-        )
-        debug.log("adjusted screen cursor", str(self.x) + "," + str(self.y))
+        #debug.log(
+        #    "adjusted buffer cursor",
+        #    str(self.col) + "," + str(self.row),
+        #)
+        #debug.log("adjusted screen cursor", str(self.x) + "," + str(self.y))
 
         self.x = clip(maxx - 1, 0, self.x)
         self.y = clip(maxy - 1, 0, self.y)
 
-        debug.log("clipped screen cursor", str(self.x) + "," + str(self.y))
+        #debug.log("clipped screen cursor", str(self.x) + "," + str(self.y))
 
         col = max(1, self.col - self.x + 1)
         row = max(1, self.row - self.y)
 
         last = self.y + offset
-        debug.log("adjusted", str(col) + "," + str(row))
+        #debug.log("adjusted", str(col) + "," + str(row))
 
         for line in self.buffer[row - 1 :][:maxy]:
             debug.log("line", offset, row - 1, line)
@@ -121,7 +123,7 @@ class Buffer:
 
         stdscr.move(last, self.x)
 
-        debug.log()
+        #debug.log()
 
     # Actions.
     def cursor_down(self, key):
@@ -162,9 +164,18 @@ class Buffer:
     def insert_char(self, key):
         if key == "^J":
             if self.command:
-                self._cmd = "\n".join(self.buffer)
-                self.clear()
-                return
+                text = '\n'.join(self.buffer + ['']).encode('utf8')
+                debug.log(text)
+                if self.multiline:
+                    r = subprocess.run(['sh', '-n'], input=text, capture_output=True)
+                    debug.log(r)
+                    if r.stderr:
+                        text = None
+                if text:
+                    self.multiline = False
+                    self._cmd = text
+                    self.clear()
+                    return
 
             self.buffer = (
                 self.buffer[: self.row - 1]
@@ -181,7 +192,7 @@ class Buffer:
         if key == "^Q":
             if self.command:
                 if len(self.buffer) == 1 and not len(self.buffer[0]):
-                    self._cmd = "\x04"
+                    self._cmd = b'\x04'
                     self.clear()
                     return
 
