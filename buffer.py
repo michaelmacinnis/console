@@ -116,7 +116,7 @@ class Buffer:
         # debug.log("adjusted", str(col) + "," + str(row))
 
         for line in self.buffer[row - 1 :][:maxy]:
-            debug.log("line", offset, row - 1, line)
+            #debug.log("line", offset, row - 1, line)
 
             stdscr.addstr(offset, 0, line[col - 1 :][: maxx - 1])
             offset += 1

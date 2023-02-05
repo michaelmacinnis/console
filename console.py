@@ -66,13 +66,10 @@ def main(term):
 
         debug.log("waiting...")
 
-        fds = [STDIN_FILENO, downstream_fd, upstream_fd, pfds[0]]
+        fds = [STDIN_FILENO, upstream_fd, pfds[0]]
         rfds, _, xfds = select.select(fds, [], fds)
 
         debug.log("got something...", rfds, xfds)
-
-        if downstream_fd in rfds:
-            debug.log("downstream", read_all(downstream_fd))
 
         if upstream_fd in rfds:
             # Handle EOF. Whether an empty byte string or OSError.
@@ -96,10 +93,9 @@ def main(term):
                         data = s[0]
 
                         debug.log("checking for type ahead")
-                        typeahead = read_all(downstream_fd)
-                        if typeahead:
-                            debug.log("typeahead", typeahead)
-                            term.command.append(typeahead)
+                        if s[1] and s[1] != b'\r\n':
+                            debug.log("typeahead", s[1])
+                            term.command.append(s[1])
 
                         os.kill(pid, signal.SIGCONT)
 
@@ -215,7 +211,7 @@ def spawn(argv):
     pid, upstream_fd, downstream_fd = fork()
     if not pid:
         # Child.
-        os.environ["PROMPT_COMMAND"] = f"echo {PS1.decode('utf8')}; kill -sTSTP $$"
+        os.environ["PROMPT_COMMAND"] = f"read -n8192 -t0.1 ta; echo \"{PS1.decode('utf8')}$ta\"; kill -sTSTP $$"
         os.environ["PS1"] = ""
         os.environ["PS2"] = ""
         os.execlp(argv[0], *argv)
