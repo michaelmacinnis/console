@@ -41,8 +41,8 @@ def fork():
         os.dup2(downstream_fd, STDIN_FILENO)
         os.dup2(downstream_fd, STDOUT_FILENO)
         os.dup2(downstream_fd, STDERR_FILENO)
-        if downstream_fd > STDERR_FILENO:
-            os.close(downstream_fd)
+        #if downstream_fd > STDERR_FILENO:
+        #    os.close(downstream_fd)
 
         # Explicitly open the tty to make it become a controlling tty.
         os.close(os.open(os.ttyname(STDOUT_FILENO), os.O_RDWR))
@@ -64,10 +64,15 @@ def main(term):
         if canonical:
             term.render()
 
-        fds = [STDIN_FILENO, upstream_fd, pfds[0]]
+        debug.log("waiting...")
+
+        fds = [STDIN_FILENO, downstream_fd, upstream_fd, pfds[0]]
         rfds, _, xfds = select.select(fds, [], fds)
 
         debug.log("got something...", rfds, xfds)
+
+        if downstream_fd in rfds:
+            debug.log("downstream", read_all(downstream_fd))
 
         if upstream_fd in rfds:
             # Handle EOF. Whether an empty byte string or OSError.
@@ -89,6 +94,14 @@ def main(term):
                     if len(s) > 1:
                         term.command.multiline = True
                         data = s[0]
+
+                        debug.log("checking for type ahead")
+                        typeahead = read_all(downstream_fd)
+                        if typeahead:
+                            debug.log("typeahead", typeahead)
+                            term.command.append(typeahead)
+
+                        os.kill(pid, signal.SIGCONT)
 
                     if data:
                         term.append(data)
@@ -130,6 +143,17 @@ def pipe():
     return p
 
 
+def read_all(fd):
+    data = b''
+    while True:
+        r, _, _ = select.select([fd], [], [], 0)
+        if not r:
+            break
+
+        data += os.read(fd, 1024)
+    return data
+
+
 def read_child(fd):
     """Default read function."""
     b = os.read(fd, 1024)
@@ -168,6 +192,8 @@ def sigchld(signum, frame):
     global exitcode
 
     cpid, status = os.wait()
+
+    debug.log(f"pid {cpid}, status {status}")
     if cpid == pid:
         exitcode = os.waitstatus_to_exitcode(status)
         write_all(pfds[1], b"x")
@@ -189,8 +215,9 @@ def spawn(argv):
     pid, upstream_fd, downstream_fd = fork()
     if not pid:
         # Child.
-        os.environ.setdefault("PS1", PS1.decode("utf8"))
-        os.environ.setdefault("PS2", "")
+        os.environ["PROMPT_COMMAND"] = f"echo {PS1.decode('utf8')}; kill -sTSTP $$"
+        os.environ["PS1"] = ""
+        os.environ["PS2"] = ""
         os.execlp(argv[0], *argv)
 
     fcntl.ioctl(upstream_fd, tty.TIOCPKT, "    ")
@@ -218,7 +245,7 @@ exitcode = 0
 
 pfds = pipe()
 
-pid, upstream_fd, downstream_fd = spawn(["sh"])
+pid, upstream_fd, downstream_fd = spawn(['bash', '--noediting', '--noprofile', '--norc'])
 
 signal.signal(signal.SIGCHLD, sigchld)
 signal.signal(signal.SIGWINCH, sigwinch)
