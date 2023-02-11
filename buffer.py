@@ -1,19 +1,6 @@
-import curses
-import curses.ascii
-import os
-import sys
-import subprocess
-
 import debug
 
-bindings = {
-    "KEY_BACKSPACE": "delete_char",
-    "KEY_DOWN": "cursor_down",
-    "KEY_LEFT": "cursor_left",
-    "KEY_RIGHT": "cursor_right",
-    "KEY_UP": "cursor_up",
-    "^S": "save_file",
-}
+from actions import bindings, insert_char
 
 
 def adjust(maximum, minimum, n):
@@ -33,31 +20,32 @@ class Buffer:
         self._cmd = ""
         self.command = command
         self.filename = filename
+        self.height = 0
         self.multiline = False
 
         if filename:
             with open(filename, "r") as file:
-                self.buffer = [line.rstrip("\n\r") for line in file]
+                self.text = [line.rstrip("\n\r") for line in file]
 
     def append(self, data):
-        update = self.row == len(self.buffer) and self.col == len(
-            self.buffer[self.row - 1]
+        update = self.row == len(self.text) and self.col == len(
+            self.text[self.row - 1]
         )
 
-        if not self.buffer[len(self.buffer) - 1]:
-            self.buffer = self.buffer[:-1]
+        if not self.text[len(self.text) - 1]:
+            self.text = self.text[:-1]
 
-        self.buffer.extend(line.decode("utf8") for line in data.splitlines())
-        self.buffer.append("")
+        self.text.extend(line.decode("utf8") for line in data.splitlines())
+        self.text.append("")
 
         if update:
-            delta = len(self.buffer) - self.row
+            delta = len(self.text) - self.row
             self.y += delta
             self.row += delta
-            self.col = len(self.buffer[self.row - 1])
+            self.col = len(self.text[self.row - 1])
 
     def clear(self):
-        self.buffer = [""]
+        self.text = [""]
         self.col = 0
         self.row = 1
         self.x = 0
@@ -73,33 +61,34 @@ class Buffer:
         return c
 
     def handle(self, key):
-        action = bindings.get(key, "insert_char")
+        action = bindings.get(key, insert_char)
 
-        getattr(self, action)(key)
+        action(self, key)
 
-        debug.log("after", action)
-        self.print()
+        # self.print()
 
     def print(self):
-        debug.log(self.buffer)
+        debug.log(self.text)
 
     def render(self, stdscr, offset, maxy, maxx):
-        # debug.log("rendering", maxx, "x", maxy)
-        # debug.log("buffer cursor at", str(self.col) + "," + str(self.row))
-        # debug.log("screen cursor at", str(self.x) + "," + str(self.y))
+        debug.log("rendering", maxx, "x", maxy)
+        debug.log("text cursor at", str(self.col) + "," + str(self.row))
+        debug.log("screen cursor at", str(self.x) + "," + str(self.y))
 
-        n = adjust(len(self.buffer), 1, self.row)
+        self.height = maxy
+
+        n = adjust(len(self.text), 1, self.row)
         self.row += n
         self.y += n
 
-        # debug.log("buffer cursor at", str(self.col) + "," + str(self.row))
+        # debug.log("text cursor at", str(self.col) + "," + str(self.row))
 
-        n = adjust(len(self.buffer[self.row - 1]), 0, self.col)
+        n = adjust(len(self.text[self.row - 1]), 0, self.col)
         self.col += n
         self.x += n
 
         # debug.log(
-        #    "adjusted buffer cursor",
+        #    "adjusted text cursor",
         #    str(self.col) + "," + str(self.row),
         # )
         # debug.log("adjusted screen cursor", str(self.x) + "," + str(self.y))
@@ -115,8 +104,8 @@ class Buffer:
         last = self.y + offset
         # debug.log("adjusted", str(col) + "," + str(row))
 
-        for line in self.buffer[row - 1 :][:maxy]:
-            #debug.log("line", offset, row - 1, line)
+        for line in self.text[row - 1 :][:maxy]:
+            # debug.log("line", offset, row - 1, line)
 
             stdscr.addstr(offset, 0, line[col - 1 :][: maxx - 1])
             offset += 1
@@ -124,86 +113,3 @@ class Buffer:
         stdscr.move(last, self.x)
 
         # debug.log()
-
-    # Actions.
-    def cursor_down(self, key):
-        self.row += 1
-        self.y += 1
-
-    def cursor_left(self, key):
-        self.col -= 1
-        self.x -= 1
-
-    def cursor_right(self, key):
-        self.col += 1
-        self.x += 1
-
-    def cursor_up(self, key):
-        self.row -= 1
-        self.y -= 1
-
-    def delete_char(self, key):
-        if not self.col:
-            # At the beginning of a line.
-            prev = self.row - 1
-            if prev > 0:
-                # There are previous lines.
-                self.col = len(self.buffer[prev - 1])
-                self.buffer[prev - 1] += self.buffer[self.row - 1]
-                self.buffer = self.buffer[:prev] + self.buffer[self.row :]
-                self.row = prev
-                self.x = self.col
-                self.y -= 1
-            return
-
-        line = self.buffer[self.row - 1]
-        self.buffer[self.row - 1] = line[: self.col - 1] + line[self.col :]
-        self.col -= 1
-        self.x -= 1
-
-    def insert_char(self, key):
-        if key == "^J":
-            if self.command:
-                text = "\n".join(self.buffer + [""]).encode("utf8")
-                debug.log(text)
-                if self.multiline:
-                    r = subprocess.run(["sh", "-n"], input=text, capture_output=True)
-                    debug.log(r)
-                    if r.stderr:
-                        text = None
-                if text:
-                    self.multiline = False
-                    self._cmd = text
-                    self.clear()
-                    return
-
-            self.buffer = (
-                self.buffer[: self.row - 1]
-                + [self.buffer[self.row - 1][: self.col]]
-                + [self.buffer[self.row - 1][self.col :]]
-                + self.buffer[self.row :]
-            )
-            self.col = 0
-            self.row += 1
-            self.x = 0
-            self.y += 1
-            return
-
-        if key == "^Q":
-            if self.command:
-                if len(self.buffer) == 1 and not len(self.buffer[0]):
-                    self._cmd = b"\x04"
-                    self.clear()
-                    return
-
-        if len(key) == 1 and curses.ascii.isprint(ord(key)):
-            line = self.buffer[self.row - 1]
-            self.buffer[self.row - 1] = line[: self.col] + key + line[self.col :]
-            self.col += 1
-            self.x += 1
-
-    def save_file(self, key):
-        if self.filename:
-            with open(self.filename, "w") as file:
-                file.write("\n".join(self.buffer))
-                file.write("\n")

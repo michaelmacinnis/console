@@ -41,7 +41,7 @@ def fork():
         os.dup2(downstream_fd, STDIN_FILENO)
         os.dup2(downstream_fd, STDOUT_FILENO)
         os.dup2(downstream_fd, STDERR_FILENO)
-        #if downstream_fd > STDERR_FILENO:
+        # if downstream_fd > STDERR_FILENO:
         #    os.close(downstream_fd)
 
         # Explicitly open the tty to make it become a controlling tty.
@@ -93,7 +93,7 @@ def main(term):
                         data = s[0]
 
                         debug.log("checking for type ahead")
-                        if s[1] and s[1] != b'\r\n':
+                        if s[1] and s[1] != b"\r\n":
                             debug.log("typeahead", s[1])
                             term.command.append(s[1])
 
@@ -140,7 +140,7 @@ def pipe():
 
 
 def read_all(fd):
-    data = b''
+    data = b""
     while True:
         r, _, _ = select.select([fd], [], [], 0)
         if not r:
@@ -211,7 +211,9 @@ def spawn(argv):
     pid, upstream_fd, downstream_fd = fork()
     if not pid:
         # Child.
-        os.environ["PROMPT_COMMAND"] = f"read -n8192 -t0.1 ta; echo \"{PS1.decode('utf8')}$ta\"; kill -sTSTP $$"
+        os.environ[
+            "PROMPT_COMMAND"
+        ] = f"read -n8192 -t0.1 ta; echo \"{PS1.decode('utf8')}$ta\"; kill -sTSTP $$"
         os.environ["PS1"] = ""
         os.environ["PS2"] = ""
         os.execlp(argv[0], *argv)
@@ -241,7 +243,9 @@ exitcode = 0
 
 pfds = pipe()
 
-pid, upstream_fd, downstream_fd = spawn(['bash', '--noediting', '--noprofile', '--norc'])
+pid, upstream_fd, downstream_fd = spawn(
+    ["bash", "--noediting", "--noprofile", "--norc"]
+)
 
 signal.signal(signal.SIGCHLD, sigchld)
 signal.signal(signal.SIGWINCH, sigwinch)
