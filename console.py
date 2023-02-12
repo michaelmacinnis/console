@@ -26,31 +26,6 @@ def canonical_mode(lst):
     return lst[3] & tty.ICANON > 0
 
 
-def fork():
-    # Adapted from Python's pty.fork().
-    upstream_fd, downstream_fd = pty.openpty()
-    pid = os.fork()
-    if not pid:
-        # Child.
-
-        # Establish a new session.
-        os.setsid()
-        os.close(upstream_fd)
-
-        # Slave becomes stdin/stdout/stderr of child.
-        os.dup2(downstream_fd, STDIN_FILENO)
-        os.dup2(downstream_fd, STDOUT_FILENO)
-        os.dup2(downstream_fd, STDERR_FILENO)
-        # if downstream_fd > STDERR_FILENO:
-        #    os.close(downstream_fd)
-
-        # Explicitly open the tty to make it become a controlling tty.
-        os.close(os.open(os.ttyname(STDOUT_FILENO), os.O_RDWR))
-
-    # Parent and child process.
-    return pid, upstream_fd, downstream_fd
-
-
 def main(term):
     """Parent copy loop.
     Copies
@@ -208,7 +183,7 @@ def spawn(argv):
     if type(argv) == type(""):
         argv = (argv,)
 
-    pid, upstream_fd, downstream_fd = fork()
+    pid, upstream_fd = pty.fork()
     if not pid:
         # Child.
         ml = MULTI_LINE.decode('utf8')
@@ -226,7 +201,7 @@ def spawn(argv):
     # Parent.
     fcntl.ioctl(upstream_fd, tty.TIOCPKT, "    ")
 
-    return pid, upstream_fd, downstream_fd
+    return pid, upstream_fd
 
 
 def terminal_input(term, fd):
@@ -249,7 +224,7 @@ exitcode = 0
 
 pfds = pipe()
 
-pid, upstream_fd, downstream_fd = spawn(
+pid, upstream_fd = spawn(
     ["bash", "--noediting", "--noprofile", "--norc"]
 )
 
@@ -260,6 +235,5 @@ term = terminal.Terminal(filename=options.parsed["FILE"])
 term.Run(main)
 
 os.close(upstream_fd)
-os.close(downstream_fd)
 
 sys.exit(exitcode)

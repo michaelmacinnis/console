@@ -79,6 +79,10 @@ class Panel:
         self.row += n
         self.y += n
 
+        delta = self.y - self.row + 1
+        if delta > 0:
+            self.y -= delta
+
         # debug.log("text cursor at", str(self.col) + "," + str(self.row))
 
         n = adjust(len(self.text[self.row - 1]), 0, self.col)
