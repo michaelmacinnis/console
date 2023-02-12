@@ -13,7 +13,7 @@ def clip(maximum, minimum, n):
 
 # TODO: Make this something more efficient.
 # Memory mapped file or ropes or something.
-class Buffer:
+class Panel:
     def __init__(self, command=False, filename=None):
         self.clear()
 

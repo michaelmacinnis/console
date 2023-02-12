@@ -2,8 +2,8 @@ import curses
 import os
 import sys
 
-import buffer
 import debug
+import panel
 
 
 def getstr(op):
@@ -24,8 +24,8 @@ class Terminal:
     def __init__(self, filename=None):
         os.environ.setdefault("ESCDELAY", "50")
 
-        self.buffer = buffer.Buffer(filename=filename)
-        self.command = buffer.Buffer(command=True)
+        self.buffer = panel.Panel(filename=filename)
+        self.command = panel.Panel(command=True)
         self.editing = filename is not None
         self.status = ""
 
@@ -120,7 +120,7 @@ class Terminal:
         self.stdscr.clear()
 
         if rows > 1:
-            n = min(rows - 1, 0 if self.editing else len(self.command.buffer))
+            n = min(rows - 1, 0 if self.editing else len(self.command.text))
             rows -= n
 
             self.stdscr.addstr(rows - 1, 0, self.status[:cols], curses.A_REVERSE)
