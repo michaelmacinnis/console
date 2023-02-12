@@ -68,6 +68,19 @@ class Panel:
     def print(self):
         debug.log(self.text)
 
+    def remove(self, data):
+        update = self.row == len(self.text) and self.col == len(self.text[self.row - 1]
+)
+        lines = [line.decode("utf8") for line in data.splitlines()] + ['']
+        if self.text[-len(lines):] == lines:
+            self.text = self.text[:-len(lines)] + ['']
+
+        if update:
+            delta = len(self.text) - self.row
+            self.y += delta
+            self.row += delta
+            self.col = len(self.text[self.row - 1])
+
     def render(self, stdscr, offset, maxy, maxx):
         debug.log("rendering", maxx, "x", maxy)
         debug.log("text cursor at", str(self.col) + "," + str(self.row))

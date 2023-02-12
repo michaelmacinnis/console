@@ -27,10 +27,11 @@ def canonical_mode(lst):
 
 
 def main(term):
-    """Parent copy loop.
-    Copies
-            child fd -> standard output   (read_child)
-            standard input -> child fd    (read_fd)"""
+    """Main event loop.
+    Handles
+            input from program running in a pseudo-terminal (child_fd);
+            input from the user through the terminal (STDIN_FILENO);
+            special events sent using the self-pipe trick (pfds[0])."""
     resize()
 
     canonical = True
@@ -41,15 +42,15 @@ def main(term):
 
         debug.log("waiting...")
 
-        fds = [STDIN_FILENO, upstream_fd, pfds[0]]
+        fds = [STDIN_FILENO, child_fd, pfds[0]]
         rfds, _, xfds = select.select(fds, [], fds)
 
         debug.log("got something...", rfds, xfds)
 
-        if upstream_fd in rfds:
+        if child_fd in rfds:
             # Handle EOF. Whether an empty byte string or OSError.
             try:
-                data, eof = read_child(upstream_fd)
+                data, eof = read_child(child_fd)
             except OSError:
                 eof = True
 
@@ -68,38 +69,44 @@ def main(term):
                         data = s[0]
 
                         debug.log("checking for type ahead")
-                        if s[1] and s[1] != b"\r\n":
+                        s[1] = s[1].removesuffix(b"\r\n")
+                        if s[1]:
                             debug.log("typeahead", s[1])
+                            term.buffer.remove(s[1])
                             term.command.append(s[1])
 
                         os.kill(pid, signal.SIGCONT)
 
                     if data:
                         term.append(data)
+
                 else:
                     write_all(STDOUT_FILENO, data)
 
+                canonical = canonical_mode(tty.tcgetattr(child_fd))
+
+
         if STDIN_FILENO in rfds:
             if canonical:
-                if not terminal_input(term, upstream_fd):
+                if not terminal_input(term, child_fd):
                     break
 
             else:
                 data = read_fd(STDIN_FILENO)
                 if data:
-                    write_all(upstream_fd, data)
+                    write_all(child_fd, data)
 
         if pfds[0] in rfds:
             data = os.read(pfds[0], 1024)
             if data == b"x":
                 break
 
-        if upstream_fd in xfds:
-            canonical = canonical_mode(tty.tcgetattr(upstream_fd))
+        if child_fd in xfds:
+            canonical = canonical_mode(tty.tcgetattr(child_fd))
             if not canonical:
                 resize()
 
-            mode.print(tty.tcgetattr(upstream_fd))
+            #mode.print(tty.tcgetattr(child_fd))
 
 
 def pipe():
@@ -112,17 +119,6 @@ def pipe():
     fcntl.fcntl(p[1], fcntl.F_SETFL, flags | os.O_NONBLOCK)
 
     return p
-
-
-def read_all(fd):
-    data = b""
-    while True:
-        r, _, _ = select.select([fd], [], [], 0)
-        if not r:
-            break
-
-        data += os.read(fd, 1024)
-    return data
 
 
 def read_child(fd):
@@ -156,7 +152,7 @@ def resize():
 
     # Tell pseudo-terminal (child process) about the new size.
     w = struct.pack("HHHH", rows, cols, 0, 0)
-    fcntl.ioctl(upstream_fd, tty.TIOCSWINSZ, w)
+    fcntl.ioctl(child_fd, tty.TIOCSWINSZ, w)
 
 
 def sigchld(signum, frame):
@@ -183,12 +179,12 @@ def spawn(argv):
     if type(argv) == type(""):
         argv = (argv,)
 
-    pid, upstream_fd = pty.fork()
+    pid, child_fd = pty.fork()
     if not pid:
         # Child.
         ml = MULTI_LINE.decode('utf8')
         os.environ["PROMPT_COMMAND"] = '; '.join((
-            'read -n8192 -t0.01 ta',
+            'read -N8192 -t0.01 ta',
             f'echo "{ml}$ta"',
             'kill -sTSTP $$',
         ))
@@ -199,9 +195,9 @@ def spawn(argv):
         os.execlp(argv[0], *argv)
 
     # Parent.
-    fcntl.ioctl(upstream_fd, tty.TIOCPKT, "    ")
+    fcntl.ioctl(child_fd, tty.TIOCPKT, "    ")
 
-    return pid, upstream_fd
+    return pid, child_fd
 
 
 def terminal_input(term, fd):
@@ -224,7 +220,7 @@ exitcode = 0
 
 pfds = pipe()
 
-pid, upstream_fd = spawn(
+pid, child_fd = spawn(
     ["bash", "--noediting", "--noprofile", "--norc"]
 )
 
@@ -234,6 +230,6 @@ signal.signal(signal.SIGWINCH, sigwinch)
 term = terminal.Terminal(filename=options.parsed["FILE"])
 term.Run(main)
 
-os.close(upstream_fd)
+os.close(child_fd)
 
 sys.exit(exitcode)
