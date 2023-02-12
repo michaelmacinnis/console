@@ -28,9 +28,7 @@ class Panel:
                 self.text = [line.rstrip("\n\r") for line in file]
 
     def append(self, data):
-        update = self.row == len(self.text) and self.col == len(
-            self.text[self.row - 1]
-        )
+        update = self.row == len(self.text) and self.col == len(self.text[self.row - 1])
 
         if not self.text[len(self.text) - 1]:
             self.text = self.text[:-1]
