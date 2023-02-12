@@ -16,7 +16,7 @@ import terminal
 
 
 # Constants.
-PS1 = b"i am a shell"  # TODO: Replace this with a custom escape sequence.
+MULTI_LINE = b"multi-line: bash, type-ahead: "  # TODO: Replace with escape sequence.
 STDIN_FILENO = 0
 STDOUT_FILENO = 1
 STDERR_FILENO = 2
@@ -87,7 +87,7 @@ def main(term):
             elif data:
                 debug.log("<- ", data)
                 if canonical:
-                    s = data.split(PS1)
+                    s = data.split(MULTI_LINE)
                     if len(s) > 1:
                         term.command.multiline = True
                         data = s[0]
@@ -211,13 +211,19 @@ def spawn(argv):
     pid, upstream_fd, downstream_fd = fork()
     if not pid:
         # Child.
-        os.environ[
-            "PROMPT_COMMAND"
-        ] = f"read -n8192 -t0.1 ta; echo \"{PS1.decode('utf8')}$ta\"; kill -sTSTP $$"
+        ml = MULTI_LINE.decode('utf8')
+        os.environ["PROMPT_COMMAND"] = '; '.join((
+            'read -n8192 -t0.01 ta',
+            f'echo "{ml}$ta"',
+            'kill -sTSTP $$',
+        ))
+
         os.environ["PS1"] = ""
         os.environ["PS2"] = ""
+
         os.execlp(argv[0], *argv)
 
+    # Parent.
     fcntl.ioctl(upstream_fd, tty.TIOCPKT, "    ")
 
     return pid, upstream_fd, downstream_fd
