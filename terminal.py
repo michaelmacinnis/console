@@ -117,6 +117,7 @@ class Terminal:
 
         rows, cols = self.stdscr.getmaxyx()
 
+        self.stdscr.keypad(1)
         self.stdscr.clear()
 
         if rows > 1:
