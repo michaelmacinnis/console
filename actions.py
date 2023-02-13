@@ -67,7 +67,6 @@ def insert_char(panel, key):
                 if r.stderr:
                     text = None
             if text:
-                panel.multiline = False
                 panel._cmd = text
                 panel.clear()
                 return

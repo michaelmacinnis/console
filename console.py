@@ -67,22 +67,23 @@ def main(term):
 
             elif data:
                 debug.log("<- ", data)
+                s = extract_type_ahead(data)
+                if len(s) > 1:
+                    debug.log("MULTI LINE")
+                    canonical = True
+                    term.command.multiline = True
+                    data = s[0]
+
+                    debug.log("checking for type ahead")
+                    s[1] = s[1].removesuffix(b"\r\n")
+                    if s[1]:
+                        debug.log("typeahead", s[1])
+                        term.buffer.remove(s[1])
+                        term.command.append(s[1])
+
+                    os.kill(pid, signal.SIGCONT)
+
                 if canonical:
-                    s = extract_type_ahead(data)
-                    if len(s) > 1:
-                        debug.log("MULTI LINE")
-                        term.command.multiline = True
-                        data = s[0]
-
-                        debug.log("checking for type ahead")
-                        s[1] = s[1].removesuffix(b"\r\n")
-                        if s[1]:
-                            debug.log("typeahead", s[1])
-                            term.buffer.remove(s[1])
-                            term.command.append(s[1])
-
-                        os.kill(pid, signal.SIGCONT)
-
                     if data:
                         # TODO: Parse and look for specific escape codes.
                         if data.startswith(b'\x1b[?1049h') or data.startswith(b'\x1b[?'):
@@ -205,6 +206,7 @@ def spawn(argv):
         os.environ["PROMPT_COMMAND"] = '; '.join((
             'read -N8192 -t0.01 ta',
             f'echo "{ml}$ta"',
+            'stty -echo',
             'kill -sTSTP $$',
         ))
 
@@ -224,6 +226,9 @@ def terminal_input(term, fd):
     if res:
         cmd = term.cmd()
         if cmd:
+            if term.command.multiline:
+                term.buffer.append(cmd)
+                term.command.multiline = False
             write_all(fd, cmd)
     return res
 
