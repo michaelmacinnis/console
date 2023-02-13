@@ -21,7 +21,7 @@ class Panel:
         self.command = command
         self.filename = filename
         self.height = 0
-        self.multiline = False
+        self.multiline = True
 
         if filename:
             with open(filename, "r") as file:

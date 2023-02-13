@@ -26,6 +26,11 @@ def canonical_mode(lst):
     return lst[3] & tty.ICANON > 0
 
 
+def extract_type_ahead(data):
+    idx = data.find(MULTI_LINE)
+    return [data] if idx < 0 else [data[:idx], data[idx+len(MULTI_LINE):]]
+
+
 def main(term):
     """Main event loop.
     Handles
@@ -63,8 +68,9 @@ def main(term):
             elif data:
                 debug.log("<- ", data)
                 if canonical:
-                    s = data.split(MULTI_LINE)
+                    s = extract_type_ahead(data)
                     if len(s) > 1:
+                        debug.log("MULTI LINE")
                         term.command.multiline = True
                         data = s[0]
 
@@ -78,12 +84,23 @@ def main(term):
                         os.kill(pid, signal.SIGCONT)
 
                     if data:
-                        term.append(data)
+                        # TODO: Parse and look for specific escape codes.
+                        if data.startswith(b'\x1b[?1049h') or data.startswith(b'\x1b[?'):
+                            write_all(STDOUT_FILENO, data)
+                            lst = tty.tcgetattr(child_fd)
+                            debug.log("after read (no prompt)")
+                            mode.print(lst)
+                            canonical = canonical_mode(lst)
+                        else:
+                            term.append(data)
 
                 else:
                     write_all(STDOUT_FILENO, data)
 
-                canonical = canonical_mode(tty.tcgetattr(child_fd))
+                    lst = tty.tcgetattr(child_fd)
+                    debug.log("after read (not canonical)")
+                    mode.print(lst)
+                    canonical = canonical_mode(lst)
 
 
         if STDIN_FILENO in rfds:
@@ -102,11 +119,13 @@ def main(term):
                 break
 
         if child_fd in xfds:
-            canonical = canonical_mode(tty.tcgetattr(child_fd))
+            lst = tty.tcgetattr(child_fd)
+            debug.log("after exception")
+            mode.print(lst)
+            canonical = canonical_mode(lst)
             if not canonical:
                 resize()
 
-            #mode.print(tty.tcgetattr(child_fd))
 
 
 def pipe():
