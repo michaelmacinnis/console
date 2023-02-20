@@ -32,7 +32,6 @@ class Terminal:
 
         cmd, echo = self.cli.command()
         if echo:
-            debug.log("ECHOING", repr(cmd))
             self.buf.append(cmd)
 
         return cmd, eof
@@ -90,7 +89,7 @@ class Terminal:
 def key(stdscr):
     try:
         k = stdscr.getch()
-        debug.log("KEY =", k)
+        debug.log("key(number) =", k)
 
         return k
     except:
@@ -118,7 +117,7 @@ def key_by_name(stdscr):
 def key_press(self):
     key = key_by_name(self.stdscr)
 
-    debug.log(repr(key))
+    debug.log("key(name) =",repr(key))
     self.status = "key = {}".format(key)
 
     if key == "KEY_MOUSE":
