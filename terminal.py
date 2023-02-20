@@ -44,22 +44,11 @@ class Terminal:
         if eof:
             return "", eof
 
-        cmd = self.cli.command()
-        if cmd:
-            if self.cli.multiline:
-                self.cli.multiline = False
-                if cmd != b"\x04":
-                    self.buf.append(cmd)
+        cmd, echo = self.cli.command()
+        if cmd and echo:
+            self.buf.append(cmd)
 
         return cmd, eof
-
-    def multiline(self, type_ahead):
-        debug.log("MULTI LINE")
-        self.cli.multiline = True
-
-        if type_ahead:
-            debug.log("type-ahead", type_ahead)
-            self.cli.prepend(type_ahead)
 
     def output(self, data):
         self.buf.append(data)
@@ -90,6 +79,9 @@ class Terminal:
         curses.curs_set(2)
 
         self.stdscr.refresh()
+
+    def type_ahead(self, type_ahead):
+        self.cli.prepend(type_ahead)
 
 
 # Helpers.

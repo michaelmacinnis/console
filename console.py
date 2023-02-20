@@ -29,7 +29,7 @@ def canonical_mode(lst):
 def extract_type_ahead(data):
     idx = data.find(MULTI_LINE)
     if idx < 0:
-        return [data]
+        return None
     return [data[:idx], data[idx + len(MULTI_LINE) :].removesuffix(b"\r\n")]
 
 
@@ -71,11 +71,11 @@ def main(term):
                 debug.log("<- ", data)
 
                 s = extract_type_ahead(data)
-                if len(s) > 1:
+                if s:
                     canonical = True
                     data = s[0]
 
-                    term.multiline(s[1])
+                    term.type_ahead(s[1])
 
                     os.kill(pid, signal.SIGCONT)
 

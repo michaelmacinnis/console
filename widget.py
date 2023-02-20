@@ -2,35 +2,11 @@ import actions
 import debug
 
 
-def adjust(maximum, minimum, n):
-    return minimum - n if n < minimum else maximum - n if n > maximum else 0
-
-
-def clip(maximum, minimum, n):
-    return n + adjust(maximum, minimum, n)
-
-
 class Panel:
     def __init__(self):
         self.clear()
 
-        self.bindings = actions.default
         self.height = 0
-
-    def append(self, data):
-        update = self.row == len(self.text) and self.col == len(self.text[self.row - 1])
-
-        if not self.text[len(self.text) - 1]:
-            self.text = self.text[:-1]
-
-        self.text.extend(line.decode("utf8") for line in data.splitlines())
-        self.text.append("")
-
-        if update:
-            delta = len(self.text) - self.row
-            self.y += delta
-            self.row += delta
-            self.col = len(self.text[self.row - 1])
 
     def clear(self):
         self.text = [""]
@@ -38,42 +14,6 @@ class Panel:
         self.row = 1
         self.x = 0
         self.y = 0
-
-    def handle(self, key):
-        action = self.bindings.get(key, self.bindings[None])
-
-        action(self, key)
-
-        # self.print()
-
-    def prepend(self, data):
-        text = list(line.decode("utf8") for line in data.splitlines())
-        self.row += len(text)
-        self.y += len(text)
-
-        text.append("")
-        self.col += len(text[-1])
-        self.x += len(text[-1])
-
-        text[-1] += self.text[0]
-        text.extend(self.text[1:])
-
-        self.text = text
-
-    def print(self):
-        debug.log(self.text)
-
-    def remove(self, data):
-        update = self.row == len(self.text) and self.col == len(self.text[self.row - 1])
-        lines = [line.decode("utf8") for line in data.splitlines()] + [""]
-        if self.text[-len(lines) :] == lines:
-            self.text = self.text[: -len(lines)] + [""]
-
-        if update:
-            delta = len(self.text) - self.row
-            self.y += delta
-            self.row += delta
-            self.col = len(self.text[self.row - 1])
 
     def render(self, stdscr, offset, maxy, maxx):
         debug.log("rendering", maxx, "x", maxy)
@@ -128,24 +68,78 @@ class CommandPanel(Panel):
     def __init__(self):
         super().__init__()
 
-        self.bindings = actions.cli
         self.complete = ""
-        self.multiline = True
+        self.multiline = False
 
     def command(self):
-        c = self.complete
-        self.complete = ""
+        cmd = self.complete
+        if not cmd:
+            return cmd, False
 
-        return c
+        echo = self.multiline and cmd != b"\x04"
+
+        self.complete = ""
+        self.multiline = False
+
+        return cmd, echo
+
+    def handle(self, key):
+        actions.cli.get(key, actions.command_insert_char)(self, key)
+
+    def prepend(self, data):
+        self.multiline = True
+        if not data:
+            return
+
+        text = list(line.decode("utf8") for line in data.splitlines())
+        self.row += len(text)
+        self.y += len(text)
+
+        text.append("")
+        self.col += len(text[-1])
+        self.x += len(text[-1])
+
+        text[-1] += self.text[0]
+        text.extend(self.text[1:])
+
+        self.text = text
 
 
 class EditorPanel(Panel):
     def __init__(self, filename=None):
         super().__init__()
 
-        self.bindings = actions.editor
         self.filename = filename
 
         if filename:
             with open(filename, "r") as file:
                 self.text = [line.rstrip("\n\r") for line in file]
+
+    def append(self, data):
+        update = self.row == len(self.text) and self.col == len(self.text[self.row - 1])
+
+        if not self.text[len(self.text) - 1]:
+            self.text = self.text[:-1]
+
+        self.text.extend(line.decode("utf8") for line in data.splitlines())
+        self.text.append("")
+
+        if update:
+            delta = len(self.text) - self.row
+            self.y += delta
+            self.row += delta
+            self.col = len(self.text[self.row - 1])
+
+    def handle(self, key):
+        actions.editor.get(key, actions.insert_char)(self, key)
+
+# Helpers.
+
+def adjust(maximum, minimum, n):
+    return minimum - n if n < minimum else maximum - n if n > maximum else 0
+
+
+def clip(maximum, minimum, n):
+    return n + adjust(maximum, minimum, n)
+
+
