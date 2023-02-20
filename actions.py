@@ -4,6 +4,30 @@ import subprocess
 import debug
 
 # Actions.
+def command_insert_char(panel, key):
+    if key == "^J":
+        text = "\n".join(panel.text + [""]).encode("utf8")
+        debug.log(text)
+
+        if panel.multiline:
+            r = subprocess.run(["sh", "-n"], input=text, capture_output=True)
+            debug.log(r)
+            if r.stderr:
+                text = None
+        if text:
+            panel.complete = text
+            panel.clear()
+            return
+
+    if key == "^Q":
+        if len(panel.text) == 1 and not len(panel.text[0]):
+            panel.complete = b"\x04"
+            panel.clear()
+            return
+
+    insert_char(panel, key)
+
+
 def cursor_down(panel, key):
     panel.row += 1
     panel.y += 1
@@ -58,19 +82,6 @@ def delete_char(panel, key):
 
 def insert_char(panel, key):
     if key == "^J":
-        if panel.command:
-            text = "\n".join(panel.text + [""]).encode("utf8")
-            debug.log(text)
-            if panel.multiline:
-                r = subprocess.run(["sh", "-n"], input=text, capture_output=True)
-                debug.log(r)
-                if r.stderr:
-                    text = None
-            if text:
-                panel._cmd = text
-                panel.clear()
-                return
-
         panel.text = (
             panel.text[: panel.row - 1]
             + [panel.text[panel.row - 1][: panel.col]]
@@ -82,13 +93,6 @@ def insert_char(panel, key):
         panel.x = 0
         panel.y += 1
         return
-
-    if key == "^Q":
-        if panel.command:
-            if len(panel.text) == 1 and not len(panel.text[0]):
-                panel._cmd = b"\x04"
-                panel.clear()
-                return
 
     if len(key) == 1 and curses.ascii.isprint(ord(key)):
         line = panel.text[panel.row - 1]
@@ -104,7 +108,9 @@ def save_file(panel, key):
             file.write("\n")
 
 
-bindings = {
+default = {
+    None: insert_char,
+
     "KEY_BACKSPACE": delete_char,
     "KEY_DOWN": cursor_down,
     "KEY_LEFT": cursor_left,
@@ -114,3 +120,13 @@ bindings = {
     "KEY_UP": cursor_up,
     "^S": save_file,
 }
+
+command = default.copy()
+command.update({
+    None : command_insert_char,
+})
+
+history = default.copy()
+history.update({
+    "^S": save_file
+})

@@ -3,11 +3,7 @@ import os
 import sys
 
 import debug
-import panel
-
-
-def getstr(op):
-    return curses.tigetstr(op)
+import widget
 
 
 def keyname(n):
@@ -24,8 +20,8 @@ class Terminal:
     def __init__(self, filename=None):
         os.environ.setdefault("ESCDELAY", "50")
 
-        self.buffer = panel.Panel(filename=filename)
-        self.command = panel.Panel(command=True)
+        self.buffer = widget.History(filename)
+        self.cli = widget.Command()
         self.editing = filename is not None
         self.status = ""
 
@@ -46,8 +42,8 @@ class Terminal:
     def append(self, data):
         self.buffer.append(data)
 
-    def cmd(self):
-        return self.command.cmd()
+    def command(self):
+        return self.cli.command()
 
     def handle(self, key):
         debug.log(repr(key))
@@ -57,9 +53,6 @@ class Terminal:
             self.status += " id = {} x = {} y = {} z = {} bstate = {}".format(
                 id, x, y, z, bstate
             )
-
-            # rows, _ = self.stdscr.getmaxyx()
-            # self.editing = y < rows - 2
 
             return True
 
@@ -76,7 +69,7 @@ class Terminal:
         if self.editing:
             self.buffer.handle(key)
         else:
-            self.command.handle(key)
+            self.cli.handle(key)
 
         return True
 
@@ -121,7 +114,7 @@ class Terminal:
         self.stdscr.clear()
 
         if rows > 1:
-            n = min(rows - 1, 0 if self.editing else len(self.command.text))
+            n = min(rows - 1, 0 if self.editing else len(self.cli.text))
             rows -= n
 
             self.stdscr.addstr(rows - 1, 0, self.status[:cols], curses.A_REVERSE)
@@ -130,7 +123,7 @@ class Terminal:
             self.buffer.render(self.stdscr, 0, rows - 1, cols)
 
             if not self.editing:
-                self.command.render(self.stdscr, rows, n, cols)
+                self.cli.render(self.stdscr, rows, n, cols)
 
         # ... and then showing it again, seems to fix the problem.
         curses.curs_set(2)

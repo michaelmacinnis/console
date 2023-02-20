@@ -71,7 +71,7 @@ def main(term):
                 if len(s) > 1:
                     debug.log("MULTI LINE")
                     canonical = True
-                    term.command.multiline = True
+                    term.cli.multiline = True
                     data = s[0]
 
                     debug.log("checking for type ahead")
@@ -224,11 +224,11 @@ def spawn(argv):
 def terminal_input(term, fd):
     res = term.handle(term.key())
     if res:
-        cmd = term.cmd()
+        cmd = term.command()
         if cmd:
-            if term.command.multiline:
+            if term.cli.multiline:
                 term.buffer.append(cmd)
-                term.command.multiline = False
+                term.cli.multiline = False
             write_all(fd, cmd)
     return res
 
