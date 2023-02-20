@@ -20,6 +20,7 @@ class Panel:
         debug.log("text cursor at", str(self.col) + "," + str(self.row))
         debug.log("screen cursor at", str(self.x) + "," + str(self.y))
 
+        # Save height.
         self.height = maxy
 
         n = adjust(len(self.text), 1, self.row)
@@ -76,7 +77,7 @@ class CommandPanel(Panel):
         if not cmd:
             return cmd, False
 
-        echo = self.multiline and cmd != b"\x04"
+        echo = self.multiline and cmd not in (b"\x04", b"\n")
 
         self.complete = ""
         self.multiline = False

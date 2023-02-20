@@ -16,21 +16,28 @@ import terminal
 
 
 # Constants.
-MULTI_LINE = b"multi-line: bash, type-ahead: "  # TODO: Replace with escape sequence.
+
+# TODO: Replace with escape sequence and also send back pid.
+MULTI_LINE = b"multi-line: bash, type-ahead: "
+
 STDIN_FILENO = 0
 STDOUT_FILENO = 1
 STDERR_FILENO = 2
 
 
-def canonical_mode(lst):
+def canonical_mode(fd):
+    lst = tty.tcgetattr(fd)
+
+    mode.print(lst)
+
     return lst[3] & tty.ICANON > 0
 
 
 def extract_type_ahead(data):
     idx = data.find(MULTI_LINE)
     if idx < 0:
-        return None
-    return [data[:idx], data[idx + len(MULTI_LINE) :].removesuffix(b"\r\n")]
+        return data, None
+    return data[:idx], data[idx + len(MULTI_LINE) :].removesuffix(b"\r\n")
 
 
 def main(term):
@@ -55,13 +62,8 @@ def main(term):
         debug.log("got something...", rfds, xfds)
 
         if child_fd in rfds:
-            # Handle EOF. Whether an empty byte string or OSError.
-            try:
-                data, eof = read_child(child_fd)
-            except OSError:
-                eof = True
-
-            if eof:  # Reached EOF.
+            data, eof = read_child(child_fd)
+            if eof:
                 debug.log("eof")
 
                 # Assume the child process exited or is unreachable.
@@ -70,36 +72,28 @@ def main(term):
             if data:
                 debug.log("<- ", data)
 
-                s = extract_type_ahead(data)
-                if s:
+                data, type_ahead = extract_type_ahead(data)
+                if type_ahead is not None:
                     canonical = True
-                    data = s[0]
 
-                    term.type_ahead(s[1])
+                    term.type_ahead(type_ahead)
 
                     os.kill(pid, signal.SIGCONT)
 
                 if canonical:
-                    if data:
-                        # TODO: Parse and look for specific escape codes.
-                        if data.startswith(b"\x1b[?1049h") or data.startswith(
-                            b"\x1b[?"
-                        ):
-                            write_all(STDOUT_FILENO, data)
-                            lst = tty.tcgetattr(child_fd)
-                            debug.log("after read (no prompt)")
-                            mode.print(lst)
-                            canonical = canonical_mode(lst)
-                        else:
-                            term.output(data)
+                    # TODO: Parse and look for specific escape codes.
+                    if data.startswith(b"\x1b[?1049h") or data.startswith(b"\x1b[?"):
+                        write_all(STDOUT_FILENO, data)
 
+                        debug.log("after read (no prompt)")
+                        canonical = canonical_mode(child_fd)
+                    else:
+                        term.output(data)
                 else:
                     write_all(STDOUT_FILENO, data)
 
-                    lst = tty.tcgetattr(child_fd)
                     debug.log("after read (not canonical)")
-                    mode.print(lst)
-                    canonical = canonical_mode(lst)
+                    canonical = canonical_mode(child_fd)
 
         if STDIN_FILENO in rfds:
             if canonical:
@@ -118,10 +112,8 @@ def main(term):
                 break
 
         if child_fd in xfds:
-            lst = tty.tcgetattr(child_fd)
             debug.log("after exception")
-            mode.print(lst)
-            canonical = canonical_mode(lst)
+            canonical = canonical_mode(child_fd)
             if not canonical:
                 resize()
 
@@ -139,14 +131,16 @@ def pipe():
 
 
 def read_child(fd):
-    b = os.read(fd, 1024)
+    # Handle EOF. Whether an empty byte string or OSError.
+    try:
+        b = os.read(fd, 1024)
+        if b:
+            data = b[1:]
+            return data, not b[0] and not data
 
-    debug.log("pkt_read", len(b), b[0] if len(b) else None)
-    if b:
-        data = b[1:]
-        return data, not b[0] and not data
-
-    return None, False
+        return None, True
+    except OSError:
+        return None, True
 
 
 def read_fd(fd):
@@ -230,7 +224,7 @@ pid, child_fd = spawn(["bash", "--noediting", "--noprofile", "--norc"])
 signal.signal(signal.SIGCHLD, sigchld)
 signal.signal(signal.SIGWINCH, sigwinch)
 
-terminal.Terminal(filename=options.parsed["FILE"]).Run(main)
+terminal.Terminal(filename=options.parsed["FILE"]).run(main)
 
 os.close(child_fd)
 

@@ -25,27 +25,14 @@ class Terminal:
         self.editing = filename is not None
         self.status = ""
 
-    def Run(self, main):
-        def wrapper(stdscr, self):
-            self.stdscr = stdscr
-
-            curses.mousemask(curses.ALL_MOUSE_EVENTS | curses.REPORT_MOUSE_POSITION)
-            curses.raw()
-
-            main(self)
-
-            curses.noraw()
-            curses.flushinp()
-
-        curses.wrapper(wrapper, self)
-
     def input(self):
-        eof = handle_key(self)
+        eof = key_press(self)
         if eof:
             return "", eof
 
         cmd, echo = self.cli.command()
         if echo:
+            debug.log("ECHOING", repr(cmd))
             self.buf.append(cmd)
 
         return cmd, eof
@@ -80,13 +67,55 @@ class Terminal:
 
         self.stdscr.refresh()
 
+    def run(self, main):
+        def wrapper(stdscr, self):
+            self.stdscr = stdscr
+
+            curses.mousemask(curses.ALL_MOUSE_EVENTS | curses.REPORT_MOUSE_POSITION)
+            curses.raw()
+
+            main(self)
+
+            curses.noraw()
+            curses.flushinp()
+
+        curses.wrapper(wrapper, self)
+
     def type_ahead(self, type_ahead):
         self.cli.prepend(type_ahead)
 
 
 # Helpers.
 
-def handle_key(self):
+def key(stdscr):
+    try:
+        k = stdscr.getch()
+        debug.log("KEY =", k)
+
+        return k
+    except:
+        return -1
+
+
+def key_by_name(stdscr):
+    n = key(stdscr)
+    if n < 0:
+        return ""
+
+    if n == 27:
+        stdscr.nodelay(True)
+        n = key(stdscr)
+        stdscr.nodelay(False)
+
+        if n >= 0:
+            return "ALT+" + curses.keyname(n).decode("utf8")
+        else:
+            return "ESC"
+
+    return curses.keyname(n).decode("utf8")
+
+
+def key_press(self):
     key = key_by_name(self.stdscr)
 
     debug.log(repr(key))
@@ -118,29 +147,3 @@ def handle_key(self):
     return False
 
 
-def key(stdscr):
-    try:
-        k = stdscr.getch()
-        debug.log("KEY =", k)
-
-        return k
-    except:
-        return -1
-
-
-def key_by_name(stdscr):
-    n = key(stdscr)
-    if n < 0:
-        return ""
-
-    if n == 27:
-        stdscr.nodelay(True)
-        n = key(stdscr)
-        stdscr.nodelay(False)
-
-        if n >= 0:
-            return "ALT+" + curses.keyname(n).decode("utf8")
-        else:
-            return "ESC"
-
-    return curses.keyname(n).decode("utf8")
