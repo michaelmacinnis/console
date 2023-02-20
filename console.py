@@ -158,7 +158,7 @@ def read_fd(fd):
 
 
 def resize():
-    cols, rows = terminal.get_size()
+    cols, rows = terminal.size()
 
     debug.log("TERMINAL SIZE =", cols, "x", rows)
 

@@ -6,7 +6,7 @@ import debug
 import widget
 
 
-def get_key(stdscr):
+def key(stdscr):
     try:
         k = stdscr.getch()
         debug.log("KEY =", k)
@@ -16,8 +16,8 @@ def get_key(stdscr):
         return -1
 
 
-def get_key_by_name(stdscr):
-    n = get_key(stdscr)
+def key_by_name(stdscr):
+    n = key(stdscr)
     if n < 0:
         return ""
 
@@ -26,7 +26,7 @@ def get_key_by_name(stdscr):
 
     if n == 27:
         stdscr.nodelay(True)
-        n = get_key(stdscr)
+        n = key(stdscr)
         stdscr.nodelay(False)
 
         if n >= 0:
@@ -37,7 +37,7 @@ def get_key_by_name(stdscr):
     return curses.keyname(n).decode("utf8")
 
 
-def get_size():
+def size():
     cols, rows = os.get_terminal_size()
 
     # Tell curses about new size.
@@ -101,7 +101,7 @@ class Terminal:
 
     def input(self):
         cmd = ""
-        eof = self.handle(get_key_by_name(self.stdscr))
+        eof = self.handle(key_by_name(self.stdscr))
         if not eof:
             cmd = self.cli.command()
             if cmd and cmd != b"\x04":
