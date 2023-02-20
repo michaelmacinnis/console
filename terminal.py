@@ -6,14 +6,19 @@ import debug
 import widget
 
 
-def keyname(n):
+def get_size():
+    cols, rows = os.get_terminal_size()
+
+    # Tell curses about new size.
+    curses.resizeterm(rows, cols)
+
+    return cols, rows
+
+
+def key_name(n):
     if n < 0:
         return ""
     return curses.keyname(n).decode("utf8")
-
-
-def resize(rows, cols):
-    curses.resizeterm(rows, cols)
 
 
 class Terminal:
@@ -92,13 +97,13 @@ class Terminal:
 
             n = self._key()
             if n >= 0:
-                k = "ALT+" + keyname(n)
+                k = "ALT+" + key_name(n)
             else:
                 k = "ESC"
 
             self.stdscr.nodelay(False)
         else:
-            k = keyname(k)
+            k = key_name(k)
 
         self.status = "key = {}".format(k)
 

@@ -162,12 +162,9 @@ def read_fd(fd):
 
 
 def resize():
-    cols, rows = os.get_terminal_size()
+    cols, rows = terminal.get_size()
 
     debug.log("TERMINAL SIZE =", cols, "x", rows)
-
-    # Tell terminal (curses) about the new size.
-    terminal.resize(rows, cols)
 
     # Tell pseudo-terminal (child process) about the new size.
     w = struct.pack("HHHH", rows, cols, 0, 0)
