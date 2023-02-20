@@ -60,24 +60,36 @@ class Terminal:
                 id, x, y, z, bstate
             )
 
-            return True
+            return False
 
         if key == "^E":
             self.editing = False
-            return True
+            return False
         elif key == "^W":
             self.editing = True
-            return True
+            return False
         elif key == "^Q":
             if self.editing:
-                return False
+                return True
 
         if self.editing:
             self.buf.handle(key)
         else:
             self.cli.handle(key)
 
-        return True
+        return False
+
+    def input(self):
+        cmd = ''
+        eof = self.handle(self.key())
+        if not eof:
+            cmd = self.command()
+            if cmd and cmd != b"\x04":
+                if self.cli.multiline:
+                    self.buf.append(cmd)
+                    self.cli.multiline = False
+
+        return cmd, eof
 
     def _key(self):
         try:

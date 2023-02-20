@@ -105,13 +105,14 @@ def main(term):
 
         if STDIN_FILENO in rfds:
             if canonical:
-                if not terminal_input(term, child_fd):
+                data, eof = term.input()
+                if eof:
                     break
-
             else:
                 data = read_fd(STDIN_FILENO)
-                if data:
-                    write_all(child_fd, data)
+
+            if data:
+                write_all(child_fd, data)
 
         if pfds[0] in rfds:
             data = os.read(pfds[0], 1024)
@@ -215,18 +216,6 @@ def spawn(argv):
     fcntl.ioctl(child_fd, tty.TIOCPKT, "    ")
 
     return pid, child_fd
-
-
-def terminal_input(term, fd):
-    res = term.handle(term.key())
-    if res:
-        cmd = term.command()
-        if cmd:
-            if term.cli.multiline:
-                term.buf.append(cmd)
-                term.cli.multiline = False
-            write_all(fd, cmd)
-    return res
 
 
 def write_all(fd, data):
