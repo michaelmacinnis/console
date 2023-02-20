@@ -28,7 +28,9 @@ def canonical_mode(lst):
 
 def extract_type_ahead(data):
     idx = data.find(MULTI_LINE)
-    return [data] if idx < 0 else [data[:idx], data[idx + len(MULTI_LINE) :]]
+    if idx < 0:
+        return [data]
+    return [data[:idx], data[idx + len(MULTI_LINE) :].removesuffix(b"\r\n")]
 
 
 def main(term):
@@ -65,20 +67,15 @@ def main(term):
                 # Assume the child process exited or is unreachable.
                 break
 
-            elif data:
+            if data:
                 debug.log("<- ", data)
+
                 s = extract_type_ahead(data)
                 if len(s) > 1:
-                    debug.log("MULTI LINE")
                     canonical = True
-                    term.cli.multiline = True
                     data = s[0]
 
-                    debug.log("checking for type ahead")
-                    s[1] = s[1].removesuffix(b"\r\n")
-                    if s[1]:
-                        debug.log("typeahead", s[1])
-                        term.cli.prepend(s[1])
+                    term.multiline(s[1])
 
                     os.kill(pid, signal.SIGCONT)
 
@@ -94,7 +91,7 @@ def main(term):
                             mode.print(lst)
                             canonical = canonical_mode(lst)
                         else:
-                            term.append(data)
+                            term.output(data)
 
                 else:
                     write_all(STDOUT_FILENO, data)

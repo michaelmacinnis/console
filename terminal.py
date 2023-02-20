@@ -6,6 +6,36 @@ import debug
 import widget
 
 
+def get_key(stdscr):
+    try:
+        k = stdscr.getch()
+        debug.log("KEY =", k)
+
+        return k
+    except:
+        return -1
+
+
+def get_key_by_name(stdscr):
+    k = get_key(stdscr)
+    if k == curses.KEY_RESIZE:
+        k = "KEY_RESIZE"
+    elif k == 27:
+        stdscr.nodelay(True)
+
+        n = get_key(stdscr)
+        if n >= 0:
+            k = "ALT+" + key_name(n)
+        else:
+            k = "ESC"
+
+        stdscr.nodelay(False)
+    else:
+        k = key_name(k)
+
+    return k
+
+
 def get_size():
     cols, rows = os.get_terminal_size()
 
@@ -45,14 +75,9 @@ class Terminal:
 
         curses.wrapper(wrapper, self)
 
-    def append(self, data):
-        self.buf.append(data)
-
-    def command(self):
-        return self.cli.command()
-
     def handle(self, key):
         debug.log(repr(key))
+        self.status = "key = {}".format(key)
 
         if key == "KEY_MOUSE":
             id, x, y, z, bstate = curses.getmouse()
@@ -81,9 +106,9 @@ class Terminal:
 
     def input(self):
         cmd = ""
-        eof = self.handle(self.key())
+        eof = self.handle(get_key_by_name(self.stdscr))
         if not eof:
-            cmd = self.command()
+            cmd = self.cli.command()
             if cmd and cmd != b"\x04":
                 if self.cli.multiline:
                     self.buf.append(cmd)
@@ -91,35 +116,16 @@ class Terminal:
 
         return cmd, eof
 
-    def _key(self):
-        try:
-            k = self.stdscr.getch()
-            debug.log("KEY =", k)
+    def multiline(self, type_ahead):
+        debug.log("MULTI LINE")
+        self.cli.multiline = True
 
-            return k
-        except:
-            return -1
+        if type_ahead:
+            debug.log("type-ahead", type_ahead)
+            self.cli.prepend(type_ahead)
 
-    def key(self):
-        k = self._key()
-        if k == curses.KEY_RESIZE:
-            k = "KEY_RESIZE"
-        elif k == 27:
-            self.stdscr.nodelay(True)
-
-            n = self._key()
-            if n >= 0:
-                k = "ALT+" + key_name(n)
-            else:
-                k = "ESC"
-
-            self.stdscr.nodelay(False)
-        else:
-            k = key_name(k)
-
-        self.status = "key = {}".format(k)
-
-        return k
+    def output(self, data):
+        self.buf.append(data)
 
     def render(self):
         # After running some programs (like top) the cursor disappears.
