@@ -37,6 +37,7 @@ def extract_type_ahead(data):
     idx = data.find(MULTI_LINE)
     if idx < 0:
         return data, None
+
     return data[:idx], data[idx + len(MULTI_LINE) :].removesuffix(b"\r\n")
 
 
@@ -60,6 +61,8 @@ def main(term):
         rfds, _, xfds = select.select(fds, [], fds)
 
         debug.log("got something...", rfds, xfds)
+
+        # NOTE: We avoid continues as there may be other fds to handle.
 
         if child_fd in rfds:
             data, eof = read_child(child_fd)
@@ -107,12 +110,12 @@ def main(term):
                 write_all(child_fd, data)
 
         if pfds[0] in rfds:
-            data = os.read(pfds[0], 1024)
+            data = read_fd(pfds[0])
             if data == b"x":
                 break
 
         if child_fd in xfds:
-            debug.log("after exception")
+            debug.log("after mode change")
             canonical = canonical_mode(child_fd)
             if not canonical:
                 resize()
@@ -143,11 +146,7 @@ def read_child(fd):
 
 
 def read_fd(fd):
-    b = os.read(fd, 1024)
-
-    debug.log("read", len(b), b[0] if len(b) else None)
-
-    return b
+    return os.read(fd, 1024)
 
 
 def resize():

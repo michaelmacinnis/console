@@ -111,7 +111,6 @@ class EditorPanel(Panel):
         super().__init__()
 
         self.filename = filename
-
         if filename:
             with open(filename, "r") as file:
                 self.text = [line.rstrip("\n\r") for line in file]
