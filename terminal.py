@@ -40,12 +40,12 @@ class Terminal:
         curses.wrapper(wrapper, self)
 
     def input(self):
-        eof = handle(self, key_by_name(self.stdscr))
+        eof = handle_key(self)
         if eof:
             return "", eof
 
         cmd, echo = self.cli.command()
-        if cmd and echo:
+        if echo:
             self.buf.append(cmd)
 
         return cmd, eof
@@ -86,7 +86,9 @@ class Terminal:
 
 # Helpers.
 
-def handle(self, key):
+def handle_key(self):
+    key = key_by_name(self.stdscr)
+
     debug.log(repr(key))
     self.status = "key = {}".format(key)
 
@@ -131,9 +133,6 @@ def key_by_name(stdscr):
     if n < 0:
         return ""
 
-    if n == curses.KEY_RESIZE:
-        return "KEY_RESIZE"
-
     if n == 27:
         stdscr.nodelay(True)
         n = key(stdscr)
@@ -145,5 +144,3 @@ def key_by_name(stdscr):
             return "ESC"
 
     return curses.keyname(n).decode("utf8")
-
-
