@@ -142,7 +142,6 @@ def pipe():
 
 
 def read_child(fd):
-    """Default read function."""
     b = os.read(fd, 1024)
 
     debug.log("pkt_read", len(b), b[0] if len(b) else None)
@@ -154,7 +153,6 @@ def read_child(fd):
 
 
 def read_fd(fd):
-    """Default read function."""
     b = os.read(fd, 1024)
 
     debug.log("read", len(b), b[0] if len(b) else None)
@@ -221,7 +219,6 @@ def spawn(argv):
 
 
 def write_all(fd, data):
-    """Write all the data to a descriptor."""
     while data:
         n = os.write(fd, data)
         data = data[n:]
@@ -236,8 +233,7 @@ pid, child_fd = spawn(["bash", "--noediting", "--noprofile", "--norc"])
 signal.signal(signal.SIGCHLD, sigchld)
 signal.signal(signal.SIGWINCH, sigwinch)
 
-term = terminal.Terminal(filename=options.parsed["FILE"])
-term.Run(main)
+terminal.Terminal(filename=options.parsed["FILE"]).Run(main)
 
 os.close(child_fd)
 
