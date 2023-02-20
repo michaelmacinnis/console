@@ -78,7 +78,7 @@ def main(term):
                     s[1] = s[1].removesuffix(b"\r\n")
                     if s[1]:
                         debug.log("typeahead", s[1])
-                        term.cli.append(s[1])
+                        term.cli.prepend(s[1])
 
                     os.kill(pid, signal.SIGCONT)
 

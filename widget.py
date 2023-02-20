@@ -46,6 +46,20 @@ class Panel:
 
         # self.print()
 
+    def prepend(self, data):
+        text = list(line.decode("utf8") for line in data.splitlines())
+        self.row += len(text)
+        self.y += len(text)
+
+        text.append("")
+        self.col += len(text[-1])
+        self.x += len(text[-1])
+
+        text[-1] += self.text[0]
+        text.extend(self.text[1:])
+
+        self.text = text
+
     def print(self):
         debug.log(self.text)
 
