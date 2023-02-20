@@ -133,14 +133,13 @@ def pipe():
 def read_child(fd):
     # Handle EOF. Whether an empty byte string or OSError.
     try:
-        b = os.read(fd, 1024)
-        if b:
-            data = b[1:]
-            return data, not b[0] and not data
-
-        return None, True
+        data = os.read(fd, 1024)
+        if data:
+            return data[1:], False
     except OSError:
-        return None, True
+        pass
+
+    return None, True
 
 
 def read_fd(fd):
