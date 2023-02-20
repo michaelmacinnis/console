@@ -86,6 +86,7 @@ class Terminal:
 
 # Helpers.
 
+
 def key(stdscr):
     try:
         k = stdscr.getch()
@@ -117,7 +118,7 @@ def key_by_name(stdscr):
 def key_press(self):
     key = key_by_name(self.stdscr)
 
-    debug.log("key(name) =",repr(key))
+    debug.log("key(name) =", repr(key))
     self.status = "key = {}".format(key)
 
     if key == "KEY_MOUSE":
@@ -144,5 +145,3 @@ def key_press(self):
         self.cli.handle(key)
 
     return False
-
-

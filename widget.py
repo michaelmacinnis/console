@@ -134,7 +134,9 @@ class EditorPanel(Panel):
     def handle(self, key):
         actions.editor.get(key, actions.insert_char)(self, key)
 
+
 # Helpers.
+
 
 def adjust(maximum, minimum, n):
     return minimum - n if n < minimum else maximum - n if n > maximum else 0
@@ -142,5 +144,3 @@ def adjust(maximum, minimum, n):
 
 def clip(maximum, minimum, n):
     return n + adjust(maximum, minimum, n)
-
-
