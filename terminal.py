@@ -17,23 +17,24 @@ def get_key(stdscr):
 
 
 def get_key_by_name(stdscr):
-    k = get_key(stdscr)
-    if k == curses.KEY_RESIZE:
-        k = "KEY_RESIZE"
-    elif k == 27:
+    n = get_key(stdscr)
+    if n < 0:
+        return ""
+
+    if n == curses.KEY_RESIZE:
+        return "KEY_RESIZE"
+
+    if n == 27:
         stdscr.nodelay(True)
-
         n = get_key(stdscr)
-        if n >= 0:
-            k = "ALT+" + key_name(n)
-        else:
-            k = "ESC"
-
         stdscr.nodelay(False)
-    else:
-        k = key_name(k)
 
-    return k
+        if n >= 0:
+            return "ALT+" + curses.keyname(n).decode("utf8")
+        else:
+            return "ESC"
+
+    return curses.keyname(n).decode("utf8")
 
 
 def get_size():
@@ -43,12 +44,6 @@ def get_size():
     curses.resizeterm(rows, cols)
 
     return cols, rows
-
-
-def key_name(n):
-    if n < 0:
-        return ""
-    return curses.keyname(n).decode("utf8")
 
 
 class Terminal:
