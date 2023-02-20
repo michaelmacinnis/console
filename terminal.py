@@ -6,37 +6,6 @@ import debug
 import widget
 
 
-def key(stdscr):
-    try:
-        k = stdscr.getch()
-        debug.log("KEY =", k)
-
-        return k
-    except:
-        return -1
-
-
-def key_by_name(stdscr):
-    n = key(stdscr)
-    if n < 0:
-        return ""
-
-    if n == curses.KEY_RESIZE:
-        return "KEY_RESIZE"
-
-    if n == 27:
-        stdscr.nodelay(True)
-        n = key(stdscr)
-        stdscr.nodelay(False)
-
-        if n >= 0:
-            return "ALT+" + curses.keyname(n).decode("utf8")
-        else:
-            return "ESC"
-
-    return curses.keyname(n).decode("utf8")
-
-
 def size():
     cols, rows = os.get_terminal_size()
 
@@ -70,44 +39,17 @@ class Terminal:
 
         curses.wrapper(wrapper, self)
 
-    def handle(self, key):
-        debug.log(repr(key))
-        self.status = "key = {}".format(key)
-
-        if key == "KEY_MOUSE":
-            id, x, y, z, bstate = curses.getmouse()
-            self.status += " id = {} x = {} y = {} z = {} bstate = {}".format(
-                id, x, y, z, bstate
-            )
-
-            return False
-
-        if key == "^E":
-            self.editing = False
-            return False
-        elif key == "^W":
-            self.editing = True
-            return False
-        elif key == "^Q":
-            if self.editing:
-                return True
-
-        if self.editing:
-            self.buf.handle(key)
-        else:
-            self.cli.handle(key)
-
-        return False
-
     def input(self):
-        cmd = ""
-        eof = self.handle(key_by_name(self.stdscr))
-        if not eof:
-            cmd = self.cli.command()
-            if cmd and cmd != b"\x04":
-                if self.cli.multiline:
+        eof = handle(self, key_by_name(self.stdscr))
+        if eof:
+            return "", eof
+
+        cmd = self.cli.command()
+        if cmd:
+            if self.cli.multiline:
+                self.cli.multiline = False
+                if cmd != b"\x04":
                     self.buf.append(cmd)
-                    self.cli.multiline = False
 
         return cmd, eof
 
@@ -148,3 +90,68 @@ class Terminal:
         curses.curs_set(2)
 
         self.stdscr.refresh()
+
+
+# Helpers.
+
+def handle(self, key):
+    debug.log(repr(key))
+    self.status = "key = {}".format(key)
+
+    if key == "KEY_MOUSE":
+        id, x, y, z, bstate = curses.getmouse()
+        self.status += " id = {} x = {} y = {} z = {} bstate = {}".format(
+            id, x, y, z, bstate
+        )
+
+        return False
+
+    if key == "^E":
+        self.editing = False
+        return False
+    elif key == "^W":
+        self.editing = True
+        return False
+    elif key == "^Q":
+        if self.editing:
+            return True
+
+    if self.editing:
+        self.buf.handle(key)
+    else:
+        self.cli.handle(key)
+
+    return False
+
+
+def key(stdscr):
+    try:
+        k = stdscr.getch()
+        debug.log("KEY =", k)
+
+        return k
+    except:
+        return -1
+
+
+def key_by_name(stdscr):
+    n = key(stdscr)
+    if n < 0:
+        return ""
+
+    if n == curses.KEY_RESIZE:
+        return "KEY_RESIZE"
+
+    if n == 27:
+        stdscr.nodelay(True)
+        n = key(stdscr)
+        stdscr.nodelay(False)
+
+        if n >= 0:
+            return "ALT+" + curses.keyname(n).decode("utf8")
+        else:
+            return "ESC"
+
+    return curses.keyname(n).decode("utf8")
+
+
