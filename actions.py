@@ -109,7 +109,6 @@ def save_file(panel, key):
 
 
 default = {
-    None: insert_char,
     "KEY_BACKSPACE": delete_char,
     "KEY_DOWN": cursor_down,
     "KEY_LEFT": cursor_left,
@@ -117,15 +116,9 @@ default = {
     "KEY_PPAGE": cursor_prev_page,
     "KEY_RIGHT": cursor_right,
     "KEY_UP": cursor_up,
-    "^S": save_file,
 }
 
 cli = default.copy()
-cli.update(
-    {
-        None: command_insert_char,
-    }
-)
 
 editor = default.copy()
 editor.update({"^S": save_file})
