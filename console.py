@@ -28,7 +28,7 @@ def canonical_mode(lst):
 
 def extract_type_ahead(data):
     idx = data.find(MULTI_LINE)
-    return [data] if idx < 0 else [data[:idx], data[idx+len(MULTI_LINE):]]
+    return [data] if idx < 0 else [data[:idx], data[idx + len(MULTI_LINE) :]]
 
 
 def main(term):
@@ -85,7 +85,9 @@ def main(term):
                 if canonical:
                     if data:
                         # TODO: Parse and look for specific escape codes.
-                        if data.startswith(b'\x1b[?1049h') or data.startswith(b'\x1b[?'):
+                        if data.startswith(b"\x1b[?1049h") or data.startswith(
+                            b"\x1b[?"
+                        ):
                             write_all(STDOUT_FILENO, data)
                             lst = tty.tcgetattr(child_fd)
                             debug.log("after read (no prompt)")
@@ -101,7 +103,6 @@ def main(term):
                     debug.log("after read (not canonical)")
                     mode.print(lst)
                     canonical = canonical_mode(lst)
-
 
         if STDIN_FILENO in rfds:
             if canonical:
@@ -126,7 +127,6 @@ def main(term):
             canonical = canonical_mode(lst)
             if not canonical:
                 resize()
-
 
 
 def pipe():
@@ -199,13 +199,15 @@ def spawn(argv):
     pid, child_fd = pty.fork()
     if not pid:
         # Child.
-        ml = MULTI_LINE.decode('utf8')
-        os.environ["PROMPT_COMMAND"] = '; '.join((
-            'read -N8192 -t0.01 ta',
-            f'echo "{ml}$ta"',
-            'stty -echo',
-            'kill -sTSTP $$',
-        ))
+        ml = MULTI_LINE.decode("utf8")
+        os.environ["PROMPT_COMMAND"] = "; ".join(
+            (
+                "read -N8192 -t0.01 ta",
+                f'echo "{ml}$ta"',
+                "stty -echo",
+                "kill -sTSTP $$",
+            )
+        )
 
         os.environ["PS1"] = ""
         os.environ["PS2"] = ""
@@ -229,9 +231,7 @@ exitcode = 0
 
 pfds = pipe()
 
-pid, child_fd = spawn(
-    ["bash", "--noediting", "--noprofile", "--norc"]
-)
+pid, child_fd = spawn(["bash", "--noediting", "--noprofile", "--norc"])
 
 signal.signal(signal.SIGCHLD, sigchld)
 signal.signal(signal.SIGWINCH, sigwinch)

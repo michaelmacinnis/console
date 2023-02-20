@@ -50,11 +50,10 @@ class Panel:
         debug.log(self.text)
 
     def remove(self, data):
-        update = self.row == len(self.text) and self.col == len(self.text[self.row - 1]
-)
-        lines = [line.decode("utf8") for line in data.splitlines()] + ['']
-        if self.text[-len(lines):] == lines:
-            self.text = self.text[:-len(lines)] + ['']
+        update = self.row == len(self.text) and self.col == len(self.text[self.row - 1])
+        lines = [line.decode("utf8") for line in data.splitlines()] + [""]
+        if self.text[-len(lines) :] == lines:
+            self.text = self.text[: -len(lines)] + [""]
 
         if update:
             delta = len(self.text) - self.row
@@ -110,19 +109,21 @@ class Panel:
 
         # debug.log()
 
+
 class CommandPanel(Panel):
     def __init__(self):
         super().__init__()
 
         self.bindings = actions.cli
-        self.complete = ''
+        self.complete = ""
         self.multiline = True
 
     def command(self):
         c = self.complete
-        self.complete = ''
+        self.complete = ""
 
         return c
+
 
 class EditorPanel(Panel):
     def __init__(self, filename=None):
@@ -134,4 +135,3 @@ class EditorPanel(Panel):
         if filename:
             with open(filename, "r") as file:
                 self.text = [line.rstrip("\n\r") for line in file]
-

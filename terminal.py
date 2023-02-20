@@ -80,7 +80,7 @@ class Terminal:
         return False
 
     def input(self):
-        cmd = ''
+        cmd = ""
         eof = self.handle(self.key())
         if not eof:
             cmd = self.command()
