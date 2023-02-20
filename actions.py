@@ -121,12 +121,12 @@ default = {
     "^S": save_file,
 }
 
-command = default.copy()
-command.update({
+cli = default.copy()
+cli.update({
     None : command_insert_char,
 })
 
-history = default.copy()
-history.update({
+editor = default.copy()
+editor.update({
     "^S": save_file
 })

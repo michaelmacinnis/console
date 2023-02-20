@@ -78,8 +78,7 @@ def main(term):
                     s[1] = s[1].removesuffix(b"\r\n")
                     if s[1]:
                         debug.log("typeahead", s[1])
-                        term.buffer.remove(s[1])
-                        term.command.append(s[1])
+                        term.cli.append(s[1])
 
                     os.kill(pid, signal.SIGCONT)
 
@@ -227,7 +226,7 @@ def terminal_input(term, fd):
         cmd = term.command()
         if cmd:
             if term.cli.multiline:
-                term.buffer.append(cmd)
+                term.buf.append(cmd)
                 term.cli.multiline = False
             write_all(fd, cmd)
     return res

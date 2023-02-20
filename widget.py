@@ -40,9 +40,7 @@ class Panel:
         self.y = 0
 
     def handle(self, key):
-        action = self.bindings.get(key, None)
-        if action is None:
-            action = self.bindings[None]
+        action = self.bindings.get(key, self.bindings[None])
 
         action(self, key)
 
@@ -112,11 +110,11 @@ class Panel:
 
         # debug.log()
 
-class Command(Panel):
+class CommandPanel(Panel):
     def __init__(self):
         super().__init__()
 
-        self.bindings = actions.command
+        self.bindings = actions.cli
         self.complete = ''
         self.multiline = True
 
@@ -126,11 +124,11 @@ class Command(Panel):
 
         return c
 
-class History(Panel):
+class EditorPanel(Panel):
     def __init__(self, filename=None):
         super().__init__()
 
-        self.bindings = actions.history
+        self.bindings = actions.editor
         self.filename = filename
 
         if filename:

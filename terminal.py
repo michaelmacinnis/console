@@ -20,8 +20,9 @@ class Terminal:
     def __init__(self, filename=None):
         os.environ.setdefault("ESCDELAY", "50")
 
-        self.buffer = widget.History(filename)
-        self.cli = widget.Command()
+        self.buf = widget.EditorPanel(filename)
+        self.cli = widget.CommandPanel()
+
         self.editing = filename is not None
         self.status = ""
 
@@ -40,7 +41,7 @@ class Terminal:
         curses.wrapper(wrapper, self)
 
     def append(self, data):
-        self.buffer.append(data)
+        self.buf.append(data)
 
     def command(self):
         return self.cli.command()
@@ -67,7 +68,7 @@ class Terminal:
                 return False
 
         if self.editing:
-            self.buffer.handle(key)
+            self.buf.handle(key)
         else:
             self.cli.handle(key)
 
@@ -120,7 +121,7 @@ class Terminal:
             self.stdscr.addstr(rows - 1, 0, self.status[:cols], curses.A_REVERSE)
             self.stdscr.chgat(-1, curses.A_REVERSE)
 
-            self.buffer.render(self.stdscr, 0, rows - 1, cols)
+            self.buf.render(self.stdscr, 0, rows - 1, cols)
 
             if not self.editing:
                 self.cli.render(self.stdscr, rows, n, cols)
