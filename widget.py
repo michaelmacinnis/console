@@ -11,7 +11,7 @@ class Panel:
     def clear(self):
         self.text = [""]
         self.col = 0
-        self.row = 1
+        self.row = 1 # Rows start at 1. All other indexes start at 0.
         self.x = 0
         self.y = 0
 
