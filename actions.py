@@ -33,6 +33,18 @@ def cursor_down(panel, key):
     panel.y += 1
 
 
+def cursor_end_of_buffer(panel, key):
+    panel.row = len(panel.text)
+    panel.col = len(panel.text[panel.row - 1])
+    panel.x = panel.col
+    panel.y = panel.row - 1
+
+
+def cursor_end_of_line(panel, key):
+    panel.col = len(panel.text[panel.row - 1])
+    panel.x = panel.col
+
+
 def cursor_left(panel, key):
     panel.col -= 1
     panel.x -= 1
@@ -53,6 +65,18 @@ def cursor_prev_page(panel, key):
 def cursor_right(panel, key):
     panel.col += 1
     panel.x += 1
+
+
+def cursor_start_of_buffer(panel, key):
+    panel.col = 0
+    panel.row = 1
+    panel.x = 0
+    panel.y = 0
+
+
+def cursor_start_of_line(panel, key):
+    panel.col = 0
+    panel.x = 0
 
 
 def cursor_up(panel, key):
@@ -109,8 +133,12 @@ def save_file(panel, key):
 
 
 default = {
+    "kEND5": cursor_end_of_buffer,
+    "kHOM5": cursor_start_of_buffer,
     "KEY_BACKSPACE": delete_char,
     "KEY_DOWN": cursor_down,
+    "KEY_END": cursor_end_of_line,
+    "KEY_HOME": cursor_start_of_line,
     "KEY_LEFT": cursor_left,
     "KEY_NPAGE": cursor_next_page,
     "KEY_PPAGE": cursor_prev_page,
