@@ -130,23 +130,3 @@ def save_file(panel, key):
         with open(panel.filename, "w") as file:
             file.write("\n".join(panel.text))
             file.write("\n")
-
-
-default = {
-    "kEND5": cursor_end_of_buffer,
-    "kHOM5": cursor_start_of_buffer,
-    "KEY_BACKSPACE": delete_char,
-    "KEY_DOWN": cursor_down,
-    "KEY_END": cursor_end_of_line,
-    "KEY_HOME": cursor_start_of_line,
-    "KEY_LEFT": cursor_left,
-    "KEY_NPAGE": cursor_next_page,
-    "KEY_PPAGE": cursor_prev_page,
-    "KEY_RIGHT": cursor_right,
-    "KEY_UP": cursor_up,
-}
-
-cli = default.copy()
-
-editor = default.copy()
-editor.update({"^S": save_file})

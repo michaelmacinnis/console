@@ -1,4 +1,5 @@
 import actions
+import bindings
 import debug
 
 
@@ -11,7 +12,7 @@ class Panel:
     def clear(self):
         self.text = [""]
         self.col = 0
-        self.row = 1 # Rows start at 1. All other indexes start at 0.
+        self.row = 1  # Rows start at 1. All other indexes start at 0.
         self.x = 0
         self.y = 0
 
@@ -85,7 +86,7 @@ class CommandPanel(Panel):
         return cmd, echo
 
     def handle(self, key):
-        actions.cli.get(key, actions.command_insert_char)(self, key)
+        bindings.cli(key)(self, key)
 
     def prepend(self, data):
         self.multiline = True
@@ -131,7 +132,7 @@ class EditorPanel(Panel):
             self.col = len(self.text[self.row - 1])
 
     def handle(self, key):
-        actions.editor.get(key, actions.insert_char)(self, key)
+        bindings.editor(key)(self, key)
 
 
 # Helpers.
