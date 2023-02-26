@@ -53,7 +53,7 @@ class Terminal:
             n = min(rows - 1, 0 if self.editing else len(self.cli.text))
             rows -= n
 
-            self.stdscr.addstr(rows - 1, 0, self.status[:cols], curses.A_REVERSE)
+            self.stdscr.addstr(rows - 1, 0, self.status[:cols-1], curses.A_REVERSE)
             self.stdscr.chgat(-1, curses.A_REVERSE)
 
             self.buf.render(self.stdscr, 0, rows - 1, cols)

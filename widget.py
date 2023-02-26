@@ -80,33 +80,59 @@ class Panel:
         # debug.log("adjusted", str(col) + "," + str(row))
 
         for line in self.text[row - 1 :][:height]:
+            span = width - 1
+
             # debug.log("line", offset, row - 1, line)
+            idx = row + offset
 
-            if row + offset < self.s or row + offset > self.v:
-                stdscr.addstr(offset, 0, line[col:][: width - 1], curses.A_NORMAL)
+            # The line is not within the selected region.
+            if idx < self.s or idx > self.v:
+                stdscr.addstr(offset, 0, line[col:][:span], curses.A_NORMAL)
                 offset += 1
                 continue
 
-            if row + offset > self.s and row + offset < self.v:
-                stdscr.addstr(offset, 0, line[col:][: width - 1], curses.A_REVERSE)
+            # The line is completely with the selected region.
+            if idx > self.s and idx < self.v:
+                stdscr.addstr(offset, 0, line[col:][:span], curses.A_REVERSE)
                 offset += 1
                 continue
 
-            if row + offset == self.s:
-                stdscr.addstr(offset, 0, line[col:self.r][: width - 1], curses.A_NORMAL)
+            shift = 0
 
-                highlighted = width - self.r + col
-                if highlighted > 0:
+            # The line is at the start of the selected region.
+            if idx == self.s:
+                # Display the unselected part of the line (if any).
+                if self.r > col:
+                    unselected = line[col+shift:self.r][:span]
+                    stdscr.addstr(offset, shift, unselected, curses.A_NORMAL)
+
+                    span -= len(unselected)
+                    shift += len(unselected)
+
+                if span > 0:
                     end = len(line)
-                    if row + offset == self.v:
+                    if idx == self.v:
                         end = self.u
-                    stdscr.addstr(offset, self.r - col, line[self.r:end][:highlighted], curses.A_REVERSE)
-            if row + offset == self.v:
-                highlighted = self.u - col
-                if highlighted > 0:
-                    stdscr.addstr(offset, 0, line[col:self.u][:highlighted], curses.A_REVERSE)
-                if highlighted < width - 1:
-                	stdscr.addstr(offset, highlighted, line[self.u:][: width - 1 - highlighted], curses.A_NORMAL)
+
+                    selected = line[col+shift:end][:span]
+                    stdscr.addstr(offset, shift, selected, curses.A_REVERSE)
+
+                    span -= len(selected)
+                    shift += len(selected)
+
+            # The line is at the end of the selected region.
+            if idx == self.v:
+                if span and self.u > col + shift:
+                    selected = line[col+shift:self.u][:span]
+                    stdscr.addstr(offset, shift, selected, curses.A_REVERSE)
+
+                    span -= len(selected)
+                    shift += len(selected)
+
+                if span > 0:
+                    selected = line[col+self.u:][:span]
+                    stdscr.addstr(offset, shift, selected, curses.A_NORMAL)
+
             offset += 1
 
         stdscr.move(last, self.x)
