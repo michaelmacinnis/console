@@ -71,9 +71,19 @@ class Terminal:
             self.stdscr = stdscr
 
             curses.mousemask(curses.ALL_MOUSE_EVENTS | curses.REPORT_MOUSE_POSITION)
+            curses.mouseinterval(0)
             curses.raw()
 
+            print('\033[?1002h')
+
+            try:
+                curses.getmouse()
+            except:
+                pass
+
             main(self)
+
+            print('\033[?1002l')
 
             curses.noraw()
             curses.flushinp()
@@ -90,7 +100,7 @@ class Terminal:
 def key(stdscr):
     try:
         k = stdscr.getch()
-        debug.log("key(number) =", k)
+        #debug.log("key(number) =", k)
 
         return k
     except:
@@ -118,16 +128,23 @@ def key_by_name(stdscr):
 def key_press(self):
     key = key_by_name(self.stdscr)
 
-    debug.log("key(name) =", repr(key))
+    #debug.log("key(name) =", repr(key))
     self.status = "key = {}".format(key)
 
     if key == "KEY_MOUSE":
-        id, x, y, z, bstate = curses.getmouse()
+        self.stdscr.touchwin()
+
+        id, x, y, z, b = curses.getmouse()
         self.status += " id = {} x = {} y = {} z = {} bstate = {}".format(
-            id, x, y, z, bstate
+            id, x, y, z, b
         )
 
-        return False
+        if y < self.buf.height:
+            self.buf.mouse(b, x, y)
+        elif y > self.buf.height:
+            self.cli.mouse(b, x, y - self.buf.height - 1)
+
+        return
 
     if key == "^E":
         self.editing = False

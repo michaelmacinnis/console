@@ -1,3 +1,5 @@
+import curses
+
 import actions
 import bindings
 import debug
@@ -16,13 +18,35 @@ class Panel:
         self.x = 0
         self.y = 0
 
-    def render(self, stdscr, offset, maxy, maxx):
-        debug.log("rendering", maxx, "x", maxy)
-        debug.log("text cursor at", str(self.col) + "," + str(self.row))
-        debug.log("screen cursor at", str(self.x) + "," + str(self.y))
+        self.r = 0
+        self.s = 0
+        self.u = 0
+        self.v = 0
 
-        # Save height.
-        self.height = maxy
+        self.markr = -1
+        self.marks = -1
+
+    def mouse(self, b, x, y):
+        event = 0
+        for mask in (curses.BUTTON1_PRESSED, curses.BUTTON1_RELEASED):
+            if b & mask:
+                event = mask
+                break
+
+        {
+            0: actions.mouse_move,
+            curses.BUTTON1_PRESSED: actions.mouse_left_pressed,
+            curses.BUTTON1_RELEASED: actions.mouse_left_released,
+        }.get(event, lambda p, x, y: None)(self, x, y)
+
+    def render(self, stdscr, offset, height, width):
+        #debug.log("rendering", width, "x", height)
+        #debug.log("text cursor at", str(self.col) + "," + str(self.row))
+        #debug.log("screen cursor at", str(self.x) + "," + str(self.y))
+
+        # Save offset and height.
+        self.offset = offset
+        self.height = height
 
         n = adjust(len(self.text), 1, self.row)
         self.row += n
@@ -44,21 +68,45 @@ class Panel:
         # )
         # debug.log("adjusted screen cursor", str(self.x) + "," + str(self.y))
 
-        self.x = clip(maxx - 1, 0, self.x)
-        self.y = clip(maxy - 1, 0, self.y)
+        self.x = clip(width - 1, 0, self.x)
+        self.y = clip(height - 1, 0, self.y)
 
         # debug.log("clipped screen cursor", str(self.x) + "," + str(self.y))
 
-        col = max(1, self.col - self.x + 1)
+        col = max(0, self.col - self.x)
         row = max(1, self.row - self.y)
 
         last = self.y + offset
         # debug.log("adjusted", str(col) + "," + str(row))
 
-        for line in self.text[row - 1 :][:maxy]:
+        for line in self.text[row - 1 :][:height]:
             # debug.log("line", offset, row - 1, line)
 
-            stdscr.addstr(offset, 0, line[col - 1 :][: maxx - 1])
+            if row + offset < self.s or row + offset > self.v:
+                stdscr.addstr(offset, 0, line[col:][: width - 1], curses.A_NORMAL)
+                offset += 1
+                continue
+
+            if row + offset > self.s and row + offset < self.v:
+                stdscr.addstr(offset, 0, line[col:][: width - 1], curses.A_REVERSE)
+                offset += 1
+                continue
+
+            if row + offset == self.s:
+                stdscr.addstr(offset, 0, line[col:self.r][: width - 1], curses.A_NORMAL)
+
+                highlighted = width - self.r + col
+                if highlighted > 0:
+                    end = len(line)
+                    if row + offset == self.v:
+                        end = self.u
+                    stdscr.addstr(offset, self.r - col, line[self.r:end][:highlighted], curses.A_REVERSE)
+            if row + offset == self.v:
+                highlighted = self.u - col
+                if highlighted > 0:
+                    stdscr.addstr(offset, 0, line[col:self.u][:highlighted], curses.A_REVERSE)
+                if highlighted < width - 1:
+                	stdscr.addstr(offset, highlighted, line[self.u:][: width - 1 - highlighted], curses.A_NORMAL)
             offset += 1
 
         stdscr.move(last, self.x)

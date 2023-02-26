@@ -1,3 +1,4 @@
+import curses
 import curses.ascii
 import subprocess
 
@@ -123,6 +124,47 @@ def insert_char(panel, key):
         panel.text[panel.row - 1] = line[: panel.col] + key + line[panel.col :]
         panel.col += 1
         panel.x += 1
+
+
+def mouse_left_pressed(panel, x, y):
+    panel.marks = min(y + panel.row - panel.y, len(panel.text))
+    panel.markr = min(x + panel.col - panel.x, len(panel.text[panel.marks - 1]))
+    panel.r = 0
+    panel.s = 0
+    panel.u = 0
+    panel.v = 0
+
+
+def mouse_left_released(panel, x, y):
+    if panel.markr == -1 or panel.marks == -1:
+        return
+
+    debug.log("mouse_left_release")
+    mouse_move(panel, x, y)
+    panel.markr = -1
+    panel.marks = -1
+
+
+def mouse_move(panel, x, y):
+    if panel.markr == -1 or panel.marks == -1:
+        return
+
+    debug.log("mouse_left_hold_move")
+    s = min(y + panel.row - panel.y, len(panel.text))
+    r = min(x + panel.col - panel.x, len(panel.text[s - 1]))
+
+    if s < panel.marks or s == panel.marks and r < panel.markr:
+        panel.r = r
+        panel.s = s
+        panel.u = panel.markr
+        panel.v = panel.marks
+    else:
+        panel.r = panel.markr
+        panel.s = panel.marks
+        panel.u = r
+        panel.v = s
+
+    debug.log(f"selected from {panel.r},{panel.s} to {panel.u},{panel.v}")
 
 
 def save_file(panel, key):
