@@ -10,6 +10,9 @@ def editor(key):
 
 
 default_bindings = {
+    "^X": cut_selection,
+    "^C": copy_selection,
+    "^V": paste_selection,
     "kEND5": cursor_end_of_buffer,
     "kHOM5": cursor_start_of_buffer,
     "KEY_BACKSPACE": delete_char,

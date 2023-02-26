@@ -12,16 +12,20 @@ class Panel:
         self.height = 0
 
     def clear(self):
+        self.clipboard = []
         self.text = [""]
         self.col = 0
         self.row = 1  # Rows start at 1. All other indexes start at 0.
         self.x = 0
         self.y = 0
 
-        self.r = 0
-        self.s = 0
-        self.u = 0
-        self.v = 0
+        self.r = -1
+        self.s = -1
+        self.u = -1
+        self.v = -1
+
+        self.pressx = -1
+        self.pressy = -1
 
         self.markr = -1
         self.marks = -1
