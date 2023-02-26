@@ -31,32 +31,36 @@ def command_insert_char(panel, key):
 
 def copy_selection(panel, key):
     if any(n < 0 for n in (panel.r, panel.s, panel.u, panel.v)):
-        return    
-
-    if panel.s == panel.v:
-        panel.clipboard = [panel.text[panel.s - 1][panel.r:panel.u]]
         return
 
-    panel.clipboard = [panel.text[panel.s - 1][panel.r:]]
+    if panel.s == panel.v:
+        panel.clipboard = [panel.text[panel.s - 1][panel.r : panel.u]]
+        return
+
+    panel.clipboard = [panel.text[panel.s - 1][panel.r :]]
 
     idx = panel.s + 1
     while idx < panel.v:
         panel.clipboard.append(panel.text[idx - 1])
         idx += 1
 
-    panel.clipboard.append(panel.text[panel.v - 1][:panel.u])
+    panel.clipboard.append(panel.text[panel.v - 1][: panel.u])
+
 
 #    if panel.row >= panel.s:
 #        panel.row += idx
 #        panel.y += idx
 
+
 def cut_selection(panel, key):
     copy_selection(panel, key)
 
-    panel.text[panel.s - 1] = panel.text[panel.s - 1][:panel.r] + panel.text[panel.v - 1][panel.u:]
+    panel.text[panel.s - 1] = (
+        panel.text[panel.s - 1][: panel.r] + panel.text[panel.v - 1][panel.u :]
+    )
 
     if panel.s != panel.v:
-        panel.text = panel.text[:panel.s] + panel.text[panel.v:]
+        panel.text = panel.text[: panel.s] + panel.text[panel.v :]
 
     delta = panel.v - panel.s
     if delta and panel.row >= panel.s:
@@ -71,6 +75,7 @@ def cut_selection(panel, key):
     panel.v = -1
 
     return
+
 
 def cursor_down(panel, key):
     panel.row += 1
@@ -234,9 +239,19 @@ def paste_selection(panel, key):
         return
 
     if len(panel.clipboard) == 1:
-        panel.text[panel.row - 1] = panel.text[panel.row - 1][:panel.col] + panel.clipboard[0] + panel.text[panel.row - 1][panel.col:]
-    
-    panel.text = panel.text[:panel.row - 1] + [panel.text[panel.row - 1][:panel.col] + panel.clipboard[0]] + panel.clipboard[1:-1] + [panel.clipboard[-1] + panel.text[panel.row - 1][panel.col:]] + panel.text[panel.row:]
+        panel.text[panel.row - 1] = (
+            panel.text[panel.row - 1][: panel.col]
+            + panel.clipboard[0]
+            + panel.text[panel.row - 1][panel.col :]
+        )
+
+    panel.text = (
+        panel.text[: panel.row - 1]
+        + [panel.text[panel.row - 1][: panel.col] + panel.clipboard[0]]
+        + panel.clipboard[1:-1]
+        + [panel.clipboard[-1] + panel.text[panel.row - 1][panel.col :]]
+        + panel.text[panel.row :]
+    )
 
 
 def save_file(panel, key):

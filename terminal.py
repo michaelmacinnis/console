@@ -54,7 +54,7 @@ class Terminal:
             n = min(rows - 1, 0 if self.editing else len(self.cli.text))
             rows -= n
 
-            self.stdscr.addstr(rows - 1, 0, self.status[:cols-1], curses.A_REVERSE)
+            self.stdscr.addstr(rows - 1, 0, self.status[: cols - 1], curses.A_REVERSE)
             self.stdscr.chgat(-1, curses.A_REVERSE)
 
             self.buf.render(self.stdscr, 0, rows - 1, cols)
@@ -75,12 +75,12 @@ class Terminal:
             curses.mousemask(curses.ALL_MOUSE_EVENTS | curses.REPORT_MOUSE_POSITION)
             curses.raw()
 
-            print('\x1b[?1003h')
+            print("\x1b[?1003h")
             sys.stdout.flush()
 
             main(self)
 
-            print('\x1b[?1003l')
+            print("\x1b[?1003l")
 
             curses.noraw()
             curses.flushinp()

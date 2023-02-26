@@ -60,20 +60,20 @@ def main(term):
         fds = [STDIN_FILENO, child_fd, pfds[0]]
         rfds, _, xfds = select.select(fds, [], fds)
 
-        #debug.log("got something...", rfds, xfds)
+        # debug.log("got something...", rfds, xfds)
 
         # NOTE: We avoid continues as there may be other fds to handle.
 
         if child_fd in rfds:
             data, eof = read_child(child_fd)
             if eof:
-                #debug.log("eof")
+                # debug.log("eof")
 
                 # Assume the child process exited or is unreachable.
                 break
 
             if data:
-                #debug.log("<- ", data)
+                # debug.log("<- ", data)
 
                 data, type_ahead = extract_type_ahead(data)
                 if type_ahead is not None:
@@ -88,14 +88,14 @@ def main(term):
                     if data.startswith(b"\x1b[?1049h") or data.startswith(b"\x1b[?"):
                         write_all(STDOUT_FILENO, data)
 
-                        #debug.log("after read (no prompt)")
+                        # debug.log("after read (no prompt)")
                         canonical = canonical_mode(child_fd)
                     else:
                         term.output(data)
                 else:
                     write_all(STDOUT_FILENO, data)
 
-                    #debug.log("after read (not canonical)")
+                    # debug.log("after read (not canonical)")
                     canonical = canonical_mode(child_fd)
 
         if STDIN_FILENO in rfds:
@@ -115,7 +115,7 @@ def main(term):
                 break
 
         if child_fd in xfds:
-            #debug.log("after mode change")
+            # debug.log("after mode change")
             canonical = canonical_mode(child_fd)
             if not canonical:
                 resize()
@@ -152,7 +152,7 @@ def read_fd(fd):
 def resize():
     cols, rows = terminal.size(False)
 
-    #debug.log("TERMINAL SIZE =", cols, "x", rows)
+    # debug.log("TERMINAL SIZE =", cols, "x", rows)
 
     # Tell pseudo-terminal (child process) about the new size.
     w = struct.pack("HHHH", rows, cols, 0, 0)
@@ -164,7 +164,7 @@ def sigchld(signum, frame):
 
     cpid, status = os.wait()
 
-    #debug.log(f"pid {cpid}, status {status}")
+    # debug.log(f"pid {cpid}, status {status}")
     if cpid == pid:
         exitcode = os.waitstatus_to_exitcode(status)
         write_all(pfds[1], b"x")
@@ -173,7 +173,7 @@ def sigchld(signum, frame):
 def sigwinch(signum, frame):
     resize()
 
-    #debug.log("SIGWINCH")
+    # debug.log("SIGWINCH")
 
     write_all(pfds[1], b"r")
 

@@ -44,9 +44,9 @@ class Panel:
         }.get(event, lambda p, x, y: None)(self, x, y)
 
     def render(self, stdscr, offset, height, width):
-        #debug.log("rendering", width, "x", height)
-        #debug.log("text cursor at", str(self.col) + "," + str(self.row))
-        #debug.log("screen cursor at", str(self.x) + "," + str(self.y))
+        # debug.log("rendering", width, "x", height)
+        # debug.log("text cursor at", str(self.col) + "," + str(self.row))
+        # debug.log("screen cursor at", str(self.x) + "," + str(self.y))
 
         # Save offset and height.
         self.offset = offset
@@ -107,7 +107,7 @@ class Panel:
             if idx == self.s:
                 # Display the unselected part of the line (if any).
                 if self.r > col:
-                    unselected = line[col+shift:self.r][:span]
+                    unselected = line[col + shift : self.r][:span]
                     stdscr.addstr(offset, shift, unselected, curses.A_NORMAL)
 
                     span -= len(unselected)
@@ -118,7 +118,7 @@ class Panel:
                     if idx == self.v:
                         end = self.u
 
-                    selected = line[col+shift:end][:span]
+                    selected = line[col + shift : end][:span]
                     stdscr.addstr(offset, shift, selected, curses.A_REVERSE)
 
                     span -= len(selected)
@@ -127,14 +127,14 @@ class Panel:
             # The line is at the end of the selected region.
             if idx == self.v:
                 if span and self.u > col + shift:
-                    selected = line[col+shift:self.u][:span]
+                    selected = line[col + shift : self.u][:span]
                     stdscr.addstr(offset, shift, selected, curses.A_REVERSE)
 
                     span -= len(selected)
                     shift += len(selected)
 
                 if span > 0:
-                    selected = line[col+self.u:][:span]
+                    selected = line[col + self.u :][:span]
                     stdscr.addstr(offset, shift, selected, curses.A_NORMAL)
 
             offset += 1
