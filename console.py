@@ -55,7 +55,7 @@ def main(term):
         if canonical:
             term.render()
 
-        #debug.log("waiting...")
+        debug.log("waiting...")
 
         fds = [STDIN_FILENO, child_fd, pfds[0]]
         rfds, _, xfds = select.select(fds, [], fds)
@@ -150,7 +150,7 @@ def read_fd(fd):
 
 
 def resize():
-    cols, rows = terminal.size()
+    cols, rows = terminal.size(False)
 
     #debug.log("TERMINAL SIZE =", cols, "x", rows)
 

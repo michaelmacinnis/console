@@ -127,6 +127,8 @@ def insert_char(panel, key):
 
 
 def mouse_left_pressed(panel, x, y):
+    debug.log("mouse_left_pressed")
+
     panel.marks = min(y + panel.row - panel.y, len(panel.text))
     panel.markr = min(x + panel.col - panel.x, len(panel.text[panel.marks - 1]))
     panel.r = 0
@@ -136,20 +138,22 @@ def mouse_left_pressed(panel, x, y):
 
 
 def mouse_left_released(panel, x, y):
+    debug.log("mouse_left_released")
+
     if panel.markr == -1 or panel.marks == -1:
         return
 
-    debug.log("mouse_left_release")
     mouse_move(panel, x, y)
     panel.markr = -1
     panel.marks = -1
 
 
 def mouse_move(panel, x, y):
+    debug.log("mouse_move")
+
     if panel.markr == -1 or panel.marks == -1:
         return
 
-    debug.log("mouse_left_hold_move")
     s = min(y + panel.row - panel.y, len(panel.text))
     r = min(x + panel.col - panel.x, len(panel.text[s - 1]))
 
