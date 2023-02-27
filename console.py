@@ -83,6 +83,9 @@ def main(term):
 
                 data, type_ahead = extract_type_ahead(data)
                 if type_ahead is not None:
+                    if not canonical:
+                        term.stdscr.clear()
+
                     canonical = True
 
                     term.type_ahead(type_ahead)
@@ -103,6 +106,8 @@ def main(term):
 
                     # debug.log("after read (not canonical)")
                     canonical = canonical_mode(child_fd)
+                    if canonical:
+                        term.stdscr.clear()
 
         if STDIN_FILENO in rfds:
             if canonical:
@@ -113,6 +118,7 @@ def main(term):
                 data = read_fd(STDIN_FILENO)
 
             if data:
+                term.stdscr.clear()
                 write_all(child_fd, data)
 
         if pfds[0] in rfds:
@@ -125,6 +131,8 @@ def main(term):
             canonical = canonical_mode(child_fd)
             if not canonical:
                 resize()
+            else:
+                term.stdscr.clear()
 
 
 def pipe():
@@ -172,7 +180,7 @@ def sigchld(signum, frame):
 
     # debug.log(f"pid {cpid}, status {status}")
     if cpid == pid:
-        exitcode = os.waitstatus_to_exitcode(status)
+        exitcode = waitstatus_to_exitcode(status)
         write_all(pfds[1], b"x")
 
 
@@ -211,6 +219,15 @@ def spawn(argv):
     fcntl.ioctl(child_fd, tty.TIOCPKT, "    ")
 
     return pid, child_fd
+
+
+def waitstatus_to_exitcode(status):
+    if os.WIFEXITED(status):
+        return os.WEXITSTATUS(status)
+    elif os.WIFSIGNALED(status):
+        return -os.WTERMSIG(status)
+    else:
+        raise ValueError(f"invalid wait status: {status!r}")
 
 
 def write_all(fd, data):

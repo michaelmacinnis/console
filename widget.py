@@ -91,15 +91,19 @@ class Panel:
 
             # The line is not within the selected region.
             if idx < self.s or idx > self.v:
-                stdscr.addstr(offset, 0, line[col:][:span], curses.A_NORMAL)
+                stdscr.attron(curses.A_NORMAL)
+                stdscr.addstr(offset, 0, line[col:][:span])
                 stdscr.hline(b' ', width - 1)
+                stdscr.attroff(curses.A_NORMAL)
                 offset += 1
                 continue
 
             # The line is completely with the selected region.
             if idx > self.s and idx < self.v:
-                stdscr.addstr(offset, 0, line[col:][:span], curses.A_REVERSE)
-                stdscr.hline(b' ', width - 1)
+                stdscr.attron(curses.A_REVERSE)
+                stdscr.addstr(offset, 0, line[col:][:span])
+                stdscr.hline(b' ', 1)
+                stdscr.attroff(curses.A_REVERSE)
                 offset += 1
                 continue
 
@@ -121,14 +125,20 @@ class Panel:
                         end = self.u
 
                     selected = line[col + shift : end][:span]
-                    stdscr.addstr(offset, shift, selected, curses.A_REVERSE)
+                    stdscr.attron(curses.A_REVERSE)
+                    stdscr.addstr(offset, shift, selected)
 
                     span -= len(selected)
                     shift += len(selected)
 
+                    if idx != self.v:
+                        stdscr.addstr(offset, shift, b' ', curses.A_REVERSE)
+
+                    stdscr.attroff(curses.A_REVERSE)
+
             # The line is at the end of the selected region.
             if idx == self.v:
-                if span and self.u > col + shift:
+                if idx != self.s and span and self.u > col + shift:
                     selected = line[col + shift : self.u][:span]
                     stdscr.addstr(offset, shift, selected, curses.A_REVERSE)
 
@@ -136,8 +146,8 @@ class Panel:
                     shift += len(selected)
 
                 if span > 0:
-                    selected = line[col + self.u :][:span]
-                    stdscr.addstr(offset, shift, selected, curses.A_NORMAL)
+                    unselected = line[self.u :][:span]
+                    stdscr.addstr(offset, shift, unselected, curses.A_NORMAL)
 
             stdscr.hline(b' ', width - 1)
             offset += 1
