@@ -48,7 +48,6 @@ class Terminal:
         rows, cols = self.stdscr.getmaxyx()
 
         self.stdscr.keypad(1)
-        self.stdscr.clear()
 
         if rows > 1:
             n = min(rows - 1, 0 if self.editing else len(self.cli.text))
@@ -137,9 +136,9 @@ def key_press(self):
         except curses.error:
             pass
 
-        if b & curses.BUTTON4_PRESSED:
+        if b & 65536: # In case curses.BUTTON4_PRESSED is not defined.
             key = "KEY_PPAGE"
-        elif b & curses.BUTTON5_PRESSED:
+        elif b & 2097152: # curses.BUTTON5_PRESSED is not always defined.
             key = "KEY_NPAGE"
         else:
             if y < self.buf.height:

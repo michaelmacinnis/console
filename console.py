@@ -33,12 +33,18 @@ def canonical_mode(fd):
     return lst[3] & tty.ICANON > 0
 
 
+def remove_suffix(b, suffix):
+    if suffix and b.endswith(suffix):
+        return b[:-len(suffix)]
+    return b
+
+
 def extract_type_ahead(data):
     idx = data.find(MULTI_LINE)
     if idx < 0:
         return data, None
 
-    return data[:idx], data[idx + len(MULTI_LINE) :].removesuffix(b"\r\n")
+    return data[:idx], remove_suffix(data[idx + len(MULTI_LINE) :], b"\r\n")
 
 
 def main(term):

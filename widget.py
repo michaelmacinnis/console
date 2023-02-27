@@ -92,12 +92,14 @@ class Panel:
             # The line is not within the selected region.
             if idx < self.s or idx > self.v:
                 stdscr.addstr(offset, 0, line[col:][:span], curses.A_NORMAL)
+                stdscr.hline(b' ', width - 1)
                 offset += 1
                 continue
 
             # The line is completely with the selected region.
             if idx > self.s and idx < self.v:
                 stdscr.addstr(offset, 0, line[col:][:span], curses.A_REVERSE)
+                stdscr.hline(b' ', width - 1)
                 offset += 1
                 continue
 
@@ -137,6 +139,7 @@ class Panel:
                     selected = line[col + self.u :][:span]
                     stdscr.addstr(offset, shift, selected, curses.A_NORMAL)
 
+            stdscr.hline(b' ', width - 1)
             offset += 1
 
         stdscr.move(last, self.x)
