@@ -35,37 +35,41 @@ def copy_selection(panel, key):
 
     if panel.s == panel.v:
         panel.clipboard = [panel.text[panel.s - 1][panel.r : panel.u]]
-        return
+    else:
+        panel.clipboard = [panel.text[panel.s - 1][panel.r :]]
 
-    panel.clipboard = [panel.text[panel.s - 1][panel.r :]]
+        idx = panel.s + 1
+        while idx < panel.v:
+            panel.clipboard.append(panel.text[idx - 1])
+            idx += 1
 
-    idx = panel.s + 1
-    while idx < panel.v:
-        panel.clipboard.append(panel.text[idx - 1])
-        idx += 1
+        panel.clipboard.append(panel.text[panel.v - 1][: panel.u])
 
-    panel.clipboard.append(panel.text[panel.v - 1][: panel.u])
-
-
-#    if panel.row >= panel.s:
-#        panel.row += idx
-#        panel.y += idx
+    if panel.u > len(panel.text[panel.v - 1]):
+        panel.clipboard.append("")
 
 
 def cut_selection(panel, key):
     copy_selection(panel, key)
 
-    panel.text[panel.s - 1] = (
-        panel.text[panel.s - 1][: panel.r] + panel.text[panel.v - 1][panel.u :]
-    )
+    delta = 0
+    remainder = panel.text[panel.v :]
 
-    if panel.s != panel.v:
-        panel.text = panel.text[: panel.s] + panel.text[panel.v :]
+    if panel.u >= len(panel.text[panel.v - 1]):
+        delta = 1
+        remainder = panel.text[panel.v + 1:]
 
-    delta = panel.v - panel.s
-    if delta and panel.row >= panel.s:
-        panel.row -= delta
-        panel.y -= delta
+        panel.text[panel.s - 1] = panel.text[panel.s - 1][: panel.r] + panel.text[panel.v]
+    else:
+        panel.text[panel.s - 1] = panel.text[panel.s - 1][: panel.r] + panel.text[panel.v - 1][panel.u :]
+
+    panel.text = panel.text[: panel.s] + remainder
+
+    # TODO: Fix up cursor adjustment.
+    #delta += panel.v - panel.s
+    #if delta and panel.row >= panel.s:
+    #    panel.row -= delta
+    #    panel.y -= delta
 
     panel.markr = -1
     panel.marks = -1
@@ -234,16 +238,17 @@ def mouse_move(panel, x, y):
 
 
 def paste_selection(panel, key):
-    debug.log("pasting:\n", "\n".join(panel.clipboard))
     if not panel.clipboard:
         return
 
     if len(panel.clipboard) == 1:
+        debug.log(f"PASTING: {repr(panel.clipboard[0])}")
         panel.text[panel.row - 1] = (
             panel.text[panel.row - 1][: panel.col]
             + panel.clipboard[0]
             + panel.text[panel.row - 1][panel.col :]
         )
+        return
 
     panel.text = (
         panel.text[: panel.row - 1]
