@@ -74,12 +74,11 @@ class Terminal:
             curses.mousemask(curses.ALL_MOUSE_EVENTS | curses.REPORT_MOUSE_POSITION)
             curses.raw()
 
-            print("\x1b[?1003h")
-            sys.stdout.flush()
+            print("\x1b[?1003h", flush=True)
 
             main(self)
 
-            print("\x1b[?1003l")
+            print("\x1b[?1003l", flush=True)
 
             curses.noraw()
             curses.flushinp()

@@ -178,7 +178,7 @@ def mouse_left_pressed(panel, x, y):
     debug.log("mouse_left_pressed")
 
     panel.marks = min(y + panel.row - panel.y, len(panel.text))
-    panel.markr = min(x + panel.col - panel.x, len(panel.text[panel.marks - 1]))
+    panel.markr = min(x + panel.col - panel.x, len(panel.text[panel.marks - 1]) + 1)
 
     panel.pressx = x
     panel.pressy = y
@@ -217,7 +217,7 @@ def mouse_move(panel, x, y):
         return
 
     s = min(y + panel.row - panel.y, len(panel.text))
-    r = min(x + panel.col - panel.x, len(panel.text[s - 1]))
+    r = min(x + panel.col - panel.x, len(panel.text[s - 1]) + 1)
 
     if s < panel.marks or s == panel.marks and r < panel.markr:
         panel.r = r
