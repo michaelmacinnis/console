@@ -4,6 +4,8 @@ import subprocess
 
 import debug
 
+clipboard = []
+
 # Actions.
 def command_insert_char(panel, key):
     if key == "^J":
@@ -30,26 +32,30 @@ def command_insert_char(panel, key):
 
 
 def copy_selection(panel, key):
+    global clipboard
+
     if any(n < 0 for n in (panel.r, panel.s, panel.u, panel.v)):
         return
 
     if panel.s == panel.v:
-        panel.clipboard = [panel.text[panel.s - 1][panel.r : panel.u]]
+        clipboard = [panel.text[panel.s - 1][panel.r : panel.u]]
     else:
-        panel.clipboard = [panel.text[panel.s - 1][panel.r :]]
+        clipboard = [panel.text[panel.s - 1][panel.r :]]
 
         idx = panel.s + 1
         while idx < panel.v:
-            panel.clipboard.append(panel.text[idx - 1])
+            clipboard.append(panel.text[idx - 1])
             idx += 1
 
-        panel.clipboard.append(panel.text[panel.v - 1][: panel.u])
+        clipboard.append(panel.text[panel.v - 1][: panel.u])
 
     if panel.u > len(panel.text[panel.v - 1]):
-        panel.clipboard.append("")
+        clipboard.append("")
 
 
 def cut_selection(panel, key):
+    global clipboard
+
     copy_selection(panel, key)
 
     delta = 0
@@ -235,23 +241,23 @@ def mouse_move(panel, x, y):
 
 
 def paste_selection(panel, key):
-    if not panel.clipboard:
+    if not clipboard:
         return
 
-    if len(panel.clipboard) == 1:
-        debug.log(f"PASTING: {repr(panel.clipboard[0])}")
+    if len(clipboard) == 1:
+        debug.log(f"PASTING: {repr(clipboard[0])}")
         panel.text[panel.row - 1] = (
             panel.text[panel.row - 1][: panel.col]
-            + panel.clipboard[0]
+            + clipboard[0]
             + panel.text[panel.row - 1][panel.col :]
         )
         return
 
     panel.text = (
         panel.text[: panel.row - 1]
-        + [panel.text[panel.row - 1][: panel.col] + panel.clipboard[0]]
-        + panel.clipboard[1:-1]
-        + [panel.clipboard[-1] + panel.text[panel.row - 1][panel.col :]]
+        + [panel.text[panel.row - 1][: panel.col] + clipboard[0]]
+        + clipboard[1:-1]
+        + [clipboard[-1] + panel.text[panel.row - 1][panel.col :]]
         + panel.text[panel.row :]
     )
 
