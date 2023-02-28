@@ -55,7 +55,7 @@ def cut_selection(panel, key):
     delta = 0
     remainder = panel.text[panel.v :]
 
-    if panel.u >= len(panel.text[panel.v - 1]):
+    if panel.u > len(panel.text[panel.v - 1]):
         delta = 1
         remainder = panel.text[panel.v + 1:]
 

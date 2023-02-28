@@ -83,11 +83,13 @@ class Panel:
         last = self.y + offset
         # debug.log("adjusted", str(col) + "," + str(row))
 
+        idx = row
+        n = 0
         for line in self.text[row - 1 :][:height]:
             span = width - 1
+            n += 1
 
             # debug.log("line", offset, row - 1, line)
-            idx = row + offset
 
             # The line is not within the selected region.
             if idx < self.s or idx > self.v:
@@ -95,7 +97,9 @@ class Panel:
                 stdscr.addstr(offset, 0, line[col:][:span])
                 stdscr.hline(b' ', width - 1)
                 stdscr.attroff(curses.A_NORMAL)
+                stdscr.hline(b' ', width - 1)
                 offset += 1
+                idx += 1
                 continue
 
             # The line is completely with the selected region.
@@ -104,7 +108,9 @@ class Panel:
                 stdscr.addstr(offset, 0, line[col:][:span])
                 stdscr.hline(b' ', 1)
                 stdscr.attroff(curses.A_REVERSE)
+                stdscr.hline(b' ', width - 1)
                 offset += 1
+                idx += 1
                 continue
 
             shift = 0
@@ -145,6 +151,13 @@ class Panel:
                         stdscr.addstr(offset, shift, unselected, curses.A_NORMAL)
 
             stdscr.hline(b' ', width - 1)
+            idx += 1
+            offset += 1
+
+        while n < height:
+            stdscr.move(offset, 0)
+            stdscr.hline(b' ', width - 1)
+            n += 1
             offset += 1
 
         stdscr.move(last, self.x)
