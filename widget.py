@@ -19,13 +19,16 @@ class Panel:
         self.x = 0
         self.y = 0
 
+        self.pressx = -1
+        self.pressy = -1
+
+        self.clear_selection()
+
+    def clear_selection(self):
         self.r = -1
         self.s = -1
         self.u = -1
         self.v = -1
-
-        self.pressx = -1
-        self.pressy = -1
 
         self.markr = -1
         self.marks = -1
@@ -37,7 +40,7 @@ class Panel:
                 event = mask
                 break
 
-        {
+        return {
             0: actions.mouse_move,
             curses.BUTTON1_PRESSED: actions.mouse_left_pressed,
             curses.BUTTON1_RELEASED: actions.mouse_left_released,

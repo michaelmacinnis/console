@@ -2,6 +2,7 @@ import curses
 import os
 import sys
 
+import bindings
 import debug
 import widget
 
@@ -24,6 +25,7 @@ class Terminal:
         self.cli = widget.CommandPanel()
 
         self.editing = filename is not None
+        self.selection = None
         self.status = ""
 
     def input(self):
@@ -141,10 +143,20 @@ def key_press(self):
             key = "KEY_NPAGE"
         else:
             if y < self.buf.height:
-                self.buf.mouse(b, x, y)
+                if self.buf.mouse(b, x, y):
+                    self.cli.clear_selection()
+                    self.selection = self.buf
             elif y > self.buf.height:
-                self.cli.mouse(b, x, y - self.buf.height - 1)
+                if self.cli.mouse(b, x, y - self.buf.height - 1):
+                    self.buf.clear_selection()
+                    self.selection = self.cli
             return
+
+    f = bindings.selection(key)
+    if f:
+        if self.selection:
+            f(self.selection, key)
+        return False
 
     if key == "^E":
         self.editing = False

@@ -8,10 +8,11 @@ def cli(key):
 def editor(key):
     return editor_bindings.get(key, insert_char)
 
+def selection(key):
+    return selection_bindings.get(key, None)
+
 
 default_bindings = {
-    "^X": cut_selection,
-    "^C": copy_selection,
     "^V": paste_selection,
     "kEND5": cursor_end_of_buffer,
     "kHOM5": cursor_start_of_buffer,
@@ -30,3 +31,8 @@ cli_bindings = default_bindings.copy()
 
 editor_bindings = default_bindings.copy()
 editor_bindings.update({"^S": save_file})
+
+selection_bindings = {
+    "^X": cut_selection,
+    "^C": copy_selection,
+}

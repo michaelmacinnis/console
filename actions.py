@@ -71,12 +71,7 @@ def cut_selection(panel, key):
     #    panel.row -= delta
     #    panel.y -= delta
 
-    panel.markr = -1
-    panel.marks = -1
-    panel.r = -1
-    panel.s = -1
-    panel.u = -1
-    panel.v = -1
+    panel.clear_selection()
 
     return
 
@@ -212,6 +207,8 @@ def mouse_left_released(panel, x, y):
 
     panel.markr = -1
     panel.marks = -1
+
+    return panel
 
 
 def mouse_move(panel, x, y):
