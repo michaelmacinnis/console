@@ -15,7 +15,7 @@ class Panel:
         self.clipboard = []
         self.text = [""]
         self.col = 0
-        self.row = 1  # Rows start at 1. All other indexes start at 0.
+        self.row = 0
         self.x = 0
         self.y = 0
 
@@ -55,17 +55,17 @@ class Panel:
         self.offset = offset
         self.height = height
 
-        n = adjust(len(self.text), 1, self.row)
+        n = adjust(len(self.text) - 1, 0, self.row)
         self.row += n
         self.y += n
 
-        delta = self.y - self.row + 1
+        delta = self.y - self.row
         if delta > 0:
             self.y -= delta
 
         # debug.log("text cursor at", str(self.col) + "," + str(self.row))
 
-        n = adjust(len(self.text[self.row - 1]), 0, self.col)
+        n = adjust(len(self.text[self.row]), 0, self.col)
         self.col += n
         self.x += n
 
@@ -81,18 +81,18 @@ class Panel:
         # debug.log("clipped screen cursor", str(self.x) + "," + str(self.y))
 
         col = max(0, self.col - self.x)
-        row = max(1, self.row - self.y)
+        row = max(0, self.row - self.y)
 
         last = self.y + offset
         # debug.log("adjusted", str(col) + "," + str(row))
 
         idx = row
         n = 0
-        for line in self.text[row - 1 :][:height]:
+        for line in self.text[row:][:height]:
             span = width - 1
             n += 1
 
-            # debug.log("line", offset, row - 1, line)
+            # debug.log("line", offset, row, line)
 
             # The line is not within the selected region.
             if idx < self.s or idx > self.v:
@@ -219,7 +219,7 @@ class EditorPanel(Panel):
                 self.text = [line.rstrip("\n\r") for line in file]
 
     def append(self, data):
-        update = self.row == len(self.text) and self.col == len(self.text[self.row - 1])
+        update = self.row == len(self.text) - 1 and self.col == len(self.text[self.row ])
 
         if not self.text[len(self.text) - 1]:
             self.text = self.text[:-1]
@@ -231,7 +231,7 @@ class EditorPanel(Panel):
             delta = len(self.text) - self.row
             self.y += delta
             self.row += delta
-            self.col = len(self.text[self.row - 1])
+            self.col = len(self.text[self.row])
 
     def handle(self, key):
         bindings.editor(key)(self, key)
