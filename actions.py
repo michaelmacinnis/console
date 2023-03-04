@@ -95,7 +95,7 @@ def cursor_end_of_buffer(panel, key):
 
 
 def cursor_end_of_line(panel, key):
-    panel.col = len(panel.text[panel.row - 1])
+    panel.col = len(panel.text[panel.row])
     panel.x = panel.col
 
 
