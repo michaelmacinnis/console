@@ -197,7 +197,7 @@ def mouse_left_pressed(panel, x, y):
 def mouse_left_released(panel, x, y):
     debug.log("mouse_left_released")
 
-    if panel.button.x == x and panel.button.y == y:
+    if panel.button.equal(x, y):
         panel.buffer.x += x - panel.screen.x
         panel.buffer.y += y - panel.screen.y
         panel.screen.x = x
