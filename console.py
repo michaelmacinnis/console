@@ -99,7 +99,7 @@ def main(term):
 
                         # debug.log("after read (no prompt)")
                         canonical = canonical_mode(child_fd)
-                    else:
+                    elif data:
                         term.output(data)
                 else:
                     write_all(STDOUT_FILENO, data)

@@ -3,6 +3,7 @@ import curses
 import actions
 import bindings
 import debug
+import point
 
 
 class Panel:
@@ -12,12 +13,13 @@ class Panel:
         self.height = 0
 
     def clear(self):
+        self.buffer = point.Point(0, 0)
+
         self.clipboard = []
         self.text = [""]
+
         self.col = 0
         self.row = 0
-        self.x = 0
-        self.y = 0
 
         self.pressx = -1
         self.pressy = -1
@@ -49,7 +51,7 @@ class Panel:
     def render(self, stdscr, offset, height, width):
         # debug.log("rendering", width, "x", height)
         # debug.log("text cursor at", str(self.col) + "," + str(self.row))
-        # debug.log("screen cursor at", str(self.x) + "," + str(self.y))
+        # debug.log("screen cursor at", str(self.buffer.x) + "," + str(self.buffer.y))
 
         # Save offset and height.
         self.offset = offset
@@ -57,33 +59,33 @@ class Panel:
 
         n = adjust(len(self.text) - 1, 0, self.row)
         self.row += n
-        self.y += n
+        self.buffer.y += n
 
-        delta = self.y - self.row
+        delta = self.buffer.y - self.row
         if delta > 0:
-            self.y -= delta
+            self.buffer.y -= delta
 
         # debug.log("text cursor at", str(self.col) + "," + str(self.row))
 
         n = adjust(len(self.text[self.row]), 0, self.col)
         self.col += n
-        self.x += n
+        self.buffer.x += n
 
         # debug.log(
         #    "adjusted text cursor",
         #    str(self.col) + "," + str(self.row),
         # )
-        # debug.log("adjusted screen cursor", str(self.x) + "," + str(self.y))
+        # debug.log("adjusted screen cursor", str(self.buffer.x) + "," + str(self.buffer.y))
 
-        self.x = clip(width - 1, 0, self.x)
-        self.y = clip(height - 1, 0, self.y)
+        self.buffer.x = clip(width - 1, 0, self.buffer.x)
+        self.buffer.y = clip(height - 1, 0, self.buffer.y)
 
-        # debug.log("clipped screen cursor", str(self.x) + "," + str(self.y))
+        # debug.log("clipped screen cursor", str(self.buffer.x) + "," + str(self.buffer.y))
 
-        col = max(0, self.col - self.x)
-        row = max(0, self.row - self.y)
+        col = max(0, self.col - self.buffer.x)
+        row = max(0, self.row - self.buffer.y)
 
-        last = self.y + offset
+        last = self.buffer.y + offset
         # debug.log("adjusted", str(col) + "," + str(row))
 
         idx = row
@@ -163,7 +165,7 @@ class Panel:
             n += 1
             offset += 1
 
-        stdscr.move(last, self.x)
+        stdscr.move(last, self.buffer.x)
 
         # debug.log()
 
@@ -197,11 +199,11 @@ class CommandPanel(Panel):
 
         text = list(line.decode("utf8") for line in data.splitlines())
         self.row += len(text)
-        self.y += len(text)
+        self.buffer.y += len(text)
 
         text.append("")
         self.col += len(text[-1])
-        self.x += len(text[-1])
+        self.buffer.x += len(text[-1])
 
         text[-1] += self.text[0]
         text.extend(self.text[1:])
@@ -228,8 +230,9 @@ class EditorPanel(Panel):
         self.text.append("")
 
         if update:
-            delta = len(self.text) - self.row
-            self.y += delta
+            delta = len(self.text) - 1 - self.row
+            debug.log("delta", delta, "row", self.row, "len(self.txt)", len(self.text))
+            self.buffer.y += delta
             self.row += delta
             self.col = len(self.text[self.row])
 
