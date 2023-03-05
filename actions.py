@@ -75,7 +75,7 @@ def cut_selection(panel, key):
     #delta += panel.v - panel.s
     #if delta and panel.row >= panel.s:
     #    panel.row -= delta
-    #    panel.buffer.y -= delta
+    #    panel.screen.y -= delta
 
     panel.clear_selection()
 
@@ -84,58 +84,58 @@ def cut_selection(panel, key):
 
 def cursor_down(panel, key):
     panel.row += 1
-    panel.buffer.y += 1
+    panel.screen.y += 1
 
 
 def cursor_end_of_buffer(panel, key):
     panel.row = len(panel.text) - 1
     panel.col = len(panel.text[panel.row])
-    panel.buffer.x = panel.col
-    panel.buffer.y = panel.row
+    panel.screen.x = panel.col
+    panel.screen.y = panel.row
 
 
 def cursor_end_of_line(panel, key):
     panel.col = len(panel.text[panel.row])
-    panel.buffer.x = panel.col
+    panel.screen.x = panel.col
 
 
 def cursor_left(panel, key):
     panel.col -= 1
-    panel.buffer.x -= 1
+    panel.screen.x -= 1
 
 
 def cursor_next_page(panel, key):
     panel.row = min(len(panel.text) - 1, panel.row + panel.height)
     if panel.row == len(panel.text) - 1:
-        panel.buffer.y = panel.height - 1
+        panel.screen.y = panel.height - 1
 
 
 def cursor_prev_page(panel, key):
     panel.row = max(0, panel.row - panel.height)
     if not panel.row:
-        panel.buffer.y = 0
+        panel.screen.y = 0
 
 
 def cursor_right(panel, key):
     panel.col += 1
-    panel.buffer.x += 1
+    panel.screen.x += 1
 
 
 def cursor_start_of_buffer(panel, key):
     panel.col = 0
     panel.row = 0
-    panel.buffer.x = 0
-    panel.buffer.y = 0
+    panel.screen.x = 0
+    panel.screen.y = 0
 
 
 def cursor_start_of_line(panel, key):
     panel.col = 0
-    panel.buffer.x = 0
+    panel.screen.x = 0
 
 
 def cursor_up(panel, key):
     panel.row -= 1
-    panel.buffer.y -= 1
+    panel.screen.y -= 1
 
 
 def delete_char(panel, key):
@@ -148,14 +148,14 @@ def delete_char(panel, key):
             panel.text[prev] += panel.text[panel.row]
             panel.text = panel.text[:panel.row] + panel.text[panel.row + 1:]
             panel.row = prev
-            panel.buffer.x = panel.col
-            panel.buffer.y -= 1
+            panel.screen.x = panel.col
+            panel.screen.y -= 1
         return
 
     line = panel.text[panel.row]
     panel.text[panel.row] = line[: panel.col - 1] + line[panel.col :]
     panel.col -= 1
-    panel.buffer.x -= 1
+    panel.screen.x -= 1
 
 
 def insert_char(panel, key):
@@ -168,25 +168,25 @@ def insert_char(panel, key):
         )
         panel.col = 0
         panel.row += 1
-        panel.buffer.x = 0
-        panel.buffer.y += 1
+        panel.screen.x = 0
+        panel.screen.y += 1
         return
 
     if len(key) == 1 and curses.ascii.isprint(ord(key)):
         line = panel.text[panel.row]
         panel.text[panel.row] = line[: panel.col] + key + line[panel.col :]
         panel.col += 1
-        panel.buffer.x += 1
+        panel.screen.x += 1
 
 
 def mouse_left_pressed(panel, x, y):
     debug.log("mouse_left_pressed")
 
-    panel.marks = min(y + panel.row - panel.buffer.y, len(panel.text) - 1)
-    panel.markr = min(x + panel.col - panel.buffer.x, len(panel.text[panel.marks]) + 1)
+    panel.marks = min(y + panel.row - panel.screen.y, len(panel.text) - 1)
+    panel.markr = min(x + panel.col - panel.screen.x, len(panel.text[panel.marks]) + 1)
 
-    panel.pressx = x
-    panel.pressy = y
+    panel.button.x = x
+    panel.button.y = y
 
     panel.r = -1
     panel.s = -1
@@ -197,14 +197,14 @@ def mouse_left_pressed(panel, x, y):
 def mouse_left_released(panel, x, y):
     debug.log("mouse_left_released")
 
-    if panel.pressx == x and panel.pressy == y:
-        panel.col += x - panel.buffer.x
-        panel.row += y - panel.buffer.y
-        panel.buffer.x = x
-        panel.buffer.y = y
+    if panel.button.x == x and panel.button.y == y:
+        panel.col += x - panel.screen.x
+        panel.row += y - panel.screen.y
+        panel.screen.x = x
+        panel.screen.y = y
 
-    panel.pressx = -1
-    panel.pressy = -1
+    panel.button.x = -1
+    panel.button.y = -1
 
     if panel.markr == -1 or panel.marks == -1:
         return
@@ -223,8 +223,8 @@ def mouse_move(panel, x, y):
     if panel.markr == -1 or panel.marks == -1:
         return
 
-    s = min(y + panel.row - panel.buffer.y, len(panel.text) - 1)
-    r = min(x + panel.col - panel.buffer.x, len(panel.text[s]) + 1)
+    s = min(y + panel.row - panel.screen.y, len(panel.text) - 1)
+    r = min(x + panel.col - panel.screen.x, len(panel.text[s]) + 1)
 
     if s < panel.marks or s == panel.marks and r < panel.markr:
         panel.r = r

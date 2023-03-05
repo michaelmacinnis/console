@@ -14,15 +14,14 @@ class Panel:
 
     def clear(self):
         self.buffer = point.Point(0, 0)
+        self.button = point.Point(0, 0)
+        self.screen = point.Point(0, 0)
 
         self.clipboard = []
         self.text = [""]
 
         self.col = 0
         self.row = 0
-
-        self.pressx = -1
-        self.pressy = -1
 
         self.clear_selection()
 
@@ -51,7 +50,7 @@ class Panel:
     def render(self, stdscr, offset, height, width):
         # debug.log("rendering", width, "x", height)
         # debug.log("text cursor at", str(self.col) + "," + str(self.row))
-        # debug.log("screen cursor at", str(self.buffer.x) + "," + str(self.buffer.y))
+        # debug.log("screen cursor at", str(self.screen.x) + "," + str(self.screen.y))
 
         # Save offset and height.
         self.offset = offset
@@ -59,33 +58,33 @@ class Panel:
 
         n = adjust(len(self.text) - 1, 0, self.row)
         self.row += n
-        self.buffer.y += n
+        self.screen.y += n
 
-        delta = self.buffer.y - self.row
+        delta = self.screen.y - self.row
         if delta > 0:
-            self.buffer.y -= delta
+            self.screen.y -= delta
 
         # debug.log("text cursor at", str(self.col) + "," + str(self.row))
 
         n = adjust(len(self.text[self.row]), 0, self.col)
         self.col += n
-        self.buffer.x += n
+        self.screen.x += n
 
         # debug.log(
         #    "adjusted text cursor",
         #    str(self.col) + "," + str(self.row),
         # )
-        # debug.log("adjusted screen cursor", str(self.buffer.x) + "," + str(self.buffer.y))
+        # debug.log("adjusted screen cursor", str(self.screen.x) + "," + str(self.screen.y))
 
-        self.buffer.x = clip(width - 1, 0, self.buffer.x)
-        self.buffer.y = clip(height - 1, 0, self.buffer.y)
+        self.screen.x = clip(width - 1, 0, self.screen.x)
+        self.screen.y = clip(height - 1, 0, self.screen.y)
 
-        # debug.log("clipped screen cursor", str(self.buffer.x) + "," + str(self.buffer.y))
+        # debug.log("clipped screen cursor", str(self.screen.x) + "," + str(self.screen.y))
 
-        col = max(0, self.col - self.buffer.x)
-        row = max(0, self.row - self.buffer.y)
+        col = max(0, self.col - self.screen.x)
+        row = max(0, self.row - self.screen.y)
 
-        last = self.buffer.y + offset
+        last = self.screen.y + offset
         # debug.log("adjusted", str(col) + "," + str(row))
 
         idx = row
@@ -165,7 +164,7 @@ class Panel:
             n += 1
             offset += 1
 
-        stdscr.move(last, self.buffer.x)
+        stdscr.move(last, self.screen.x)
 
         # debug.log()
 
@@ -199,11 +198,11 @@ class CommandPanel(Panel):
 
         text = list(line.decode("utf8") for line in data.splitlines())
         self.row += len(text)
-        self.buffer.y += len(text)
+        self.screen.y += len(text)
 
         text.append("")
         self.col += len(text[-1])
-        self.buffer.x += len(text[-1])
+        self.screen.x += len(text[-1])
 
         text[-1] += self.text[0]
         text.extend(self.text[1:])
@@ -232,7 +231,7 @@ class EditorPanel(Panel):
         if update:
             delta = len(self.text) - 1 - self.row
             debug.log("delta", delta, "row", self.row, "len(self.txt)", len(self.text))
-            self.buffer.y += delta
+            self.screen.y += delta
             self.row += delta
             self.col = len(self.text[self.row])
 
