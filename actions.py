@@ -17,16 +17,16 @@ def command_insert_char(widget, key):
     insert_char(widget, key)
 
     if key == "^J":
-        text = "\n".join(widget.text).encode("utf8")
-        debug.log(text)
+        raw = widget.text.raw()
+        debug.log(raw)
 
         if widget.multiline:
-            r = subprocess.run(["sh", "-n"], input=text, capture_output=True)
+            r = subprocess.run(["sh", "-n"], input=raw, capture_output=True)
             debug.log(r)
             if r.stderr:
-                text = None
-        if text:
-            widget.complete = text
+                raw = None
+        if raw:
+            widget.complete = raw
             widget.clear()
             return
 

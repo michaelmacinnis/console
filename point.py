@@ -2,6 +2,9 @@ class Point:
     def __init__(self, x=-1, y=-1):
         self.set(x, y)
 
+    def __repr__(self):
+        return f"Point({self.x}, {self.y})"
+
     def equal(self, x, y):
         return self.x == x and self.y == y
 

@@ -218,11 +218,7 @@ class EditorPanel(Panel):
     def append(self, data):
         update = self.buffer.y == len(self.text) - 1 and self.buffer.x == len(self.text[self.buffer.y])
 
-        if not self.text[len(self.text) - 1]:
-            self.text = self.text[:-1]
-
-        self.text.extend(line.decode("utf8") for line in data.splitlines())
-        self.text.append("")
+        self.text.append(data)
 
         if update:
             delta = len(self.text) - 1 - self.buffer.y

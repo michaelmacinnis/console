@@ -1,13 +1,19 @@
 import collections
+import re
 
+import debug
 import point
 
 class Buffer(collections.UserList):
     def __init__(self, data):
         super().__init__(data)
 
+    def append(self, raw):
+        self.insert(point.Point(len(self[-1]), len(self) - 1), raw)
+
     def insert(self, cursor, raw):
-        lines = list(line.decode("utf8") for line in raw.splitlines())
+        lines = split(raw)
+        debug.log(f"BUFFER inserting: {repr(lines)} at {cursor}")
         if len(lines) == 1:
             self[cursor.y] = (
                 self[cursor.y][: cursor.x]
@@ -23,6 +29,9 @@ class Buffer(collections.UserList):
             + [lines[-1] + self[cursor.y][cursor.x :]]
             + self[cursor.y + 1:]
         )
+
+    def raw(self):
+        return join(self)
 
     def remove(self, p0, p1):
         delta = 0
@@ -46,7 +55,19 @@ class Buffer(collections.UserList):
             lines.extend(self[p0.y + 1: p1.y])
             lines.append(self[p1.y][: p1.x])
 
+        raw = join(lines)
         if p1.x > len(self[p1.y]):
-            lines.append("")
+            raw += b"\n"
 
-        return "\n".join(lines).encode("utf8")
+        return raw
+
+
+delim = re.compile(rb'\r?\n')
+
+def join(lines):
+    return "\n".join(lines).encode("utf8")
+
+
+def split(raw):
+    return list(line.decode("utf8") for line in delim.split(raw))
+
