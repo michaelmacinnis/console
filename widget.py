@@ -17,9 +17,9 @@ class Panel:
         # The buffer and selection points uses buffer co-ordinates.
         self.buffer = point.Point(0, 0) # TODO: Rename to cursor.
 
-        self.p0 = point.Point(-1, -1)
-        self.p1 = point.Point(-1, -1)
-        self.s = point.Point(-1, -1)
+        self.p0 = point.Point()
+        self.p1 = point.Point()
+        self.s = point.Point()
 
         # The button and screen points use display co-ordinates.
         self.button = point.Point(0, 0)
@@ -29,9 +29,9 @@ class Panel:
 
     def clear_selection(self):
         # The beginning, ending, and selection points use buffer co-ordinates.
-        self.p0.set(-1, -1)
-        self.p1.set(-1, -1)
-        self.s.set(-1, -1)
+        self.p0.clear()
+        self.p1.clear()
+        self.s.clear()
 
     def mouse(self, b, x, y):
         event = 0
@@ -59,25 +59,11 @@ class Panel:
         self.buffer.y += n
         self.screen.y += n
 
-        overflow = self.screen.y - self.buffer.y
-        if overflow > 0:
-            self.screen.y -= overflow
-
-        # debug.log("text cursor at", str(self.buffer.x) + "," + str(self.buffer.y))
-
         n = point.correction(self.buffer.x, 0, len(self.text[self.buffer.y]))
         self.buffer.x += n
         self.screen.x += n
 
-        # debug.log(
-        #    "adjusted text cursor",
-        #    str(self.buffer.x) + "," + str(self.buffer.y),
-        # )
-        # debug.log("adjusted screen cursor", str(self.screen.x) + "," + str(self.screen.y))
-
-        self.screen.clip(width - 1, height - 1)
-
-        # debug.log("clipped screen cursor", str(self.screen.x) + "," + str(self.screen.y))
+        self.screen.clip(width - 1, min(height - 1, self.buffer.y))
 
         col = max(0, self.buffer.x - self.screen.x)
         row = max(0, self.buffer.y - self.screen.y)
@@ -88,7 +74,7 @@ class Panel:
         idx = row
         n = 0
         for line in self.text[row:][:height]:
-            span = width - 1
+            span = width
             n += 1
 
             # debug.log("line", offset, row, line)
@@ -97,22 +83,29 @@ class Panel:
             if idx < self.p0.y or idx > self.p1.y:
                 stdscr.attron(curses.A_NORMAL)
                 stdscr.addstr(offset, 0, line[col:][:span])
-                stdscr.hline(b" ", width - 1)
+                stdscr.hline(b" ", width)
                 stdscr.attroff(curses.A_NORMAL)
-                stdscr.hline(b" ", width - 1)
+
                 offset += 1
                 idx += 1
+
                 continue
 
             # The line is completely with the selected region.
             if idx > self.p0.y and idx < self.p1.y:
                 stdscr.attron(curses.A_REVERSE)
-                stdscr.addstr(offset, 0, line[col:][:span])
-                stdscr.hline(b" ", 1)
+                display = line[col:][:span]
+                stdscr.addstr(offset, 0, display)
+                try:
+                    stdscr.addstr(offset, len(display), b" ")
+                except:
+                    pass
                 stdscr.attroff(curses.A_REVERSE)
-                stdscr.hline(b" ", width - 1)
+                stdscr.hline(b" ", width)
+
                 offset += 1
                 idx += 1
+
                 continue
 
             shift = 0

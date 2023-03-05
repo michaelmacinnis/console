@@ -134,23 +134,25 @@ def key_press(self):
             self.status += " id = {} x = {} y = {} z = {} bstate = {}".format(
                 id, x, y, z, b
             )
+
+            if b & 65536:  # In case curses.BUTTON4_PRESSED is not defined.
+                key = "KEY_PPAGE"
+            elif b & 2097152:  # curses.BUTTON5_PRESSED is not always defined.
+                key = "KEY_NPAGE"
+            else:
+                if y < self.buf.height:
+                    if self.buf.mouse(b, x, y):
+                        self.cli.clear_selection()
+                        self.selection = self.buf
+                elif y > self.buf.height:
+                    if self.cli.mouse(b, x, y - self.buf.height - 1):
+                        self.buf.clear_selection()
+                        self.selection = self.cli
+
         except curses.error:
             pass
 
-        if b & 65536:  # In case curses.BUTTON4_PRESSED is not defined.
-            key = "KEY_PPAGE"
-        elif b & 2097152:  # curses.BUTTON5_PRESSED is not always defined.
-            key = "KEY_NPAGE"
-        else:
-            if y < self.buf.height:
-                if self.buf.mouse(b, x, y):
-                    self.cli.clear_selection()
-                    self.selection = self.buf
-            elif y > self.buf.height:
-                if self.cli.mouse(b, x, y - self.buf.height - 1):
-                    self.buf.clear_selection()
-                    self.selection = self.cli
-            return
+        return
 
     f = bindings.selection(key)
     if f:
