@@ -15,7 +15,7 @@ class Panel:
 
     def clear(self):
         # The buffer and selection points uses buffer co-ordinates.
-        self.buffer = point.Point(0, 0)
+        self.buffer = point.Point(0, 0) # TODO: Rename to cursor.
 
         self.p0 = point.Point(-1, -1)
         self.p1 = point.Point(-1, -1)
@@ -55,17 +55,17 @@ class Panel:
         self.offset = offset
         self.height = height
 
-        n = adjust(len(self.text) - 1, 0, self.buffer.y)
+        n = point.correction(self.buffer.y, 0, len(self.text) - 1)
         self.buffer.y += n
         self.screen.y += n
 
-        delta = self.screen.y - self.buffer.y
-        if delta > 0:
-            self.screen.y -= delta
+        overflow = self.screen.y - self.buffer.y
+        if overflow > 0:
+            self.screen.y -= overflow
 
         # debug.log("text cursor at", str(self.buffer.x) + "," + str(self.buffer.y))
 
-        n = adjust(len(self.text[self.buffer.y]), 0, self.buffer.x)
+        n = point.correction(self.buffer.x, 0, len(self.text[self.buffer.y]))
         self.buffer.x += n
         self.screen.x += n
 
@@ -75,8 +75,7 @@ class Panel:
         # )
         # debug.log("adjusted screen cursor", str(self.screen.x) + "," + str(self.screen.y))
 
-        self.screen.x = clip(width - 1, 0, self.screen.x)
-        self.screen.y = clip(height - 1, 0, self.screen.y)
+        self.screen.clip(width - 1, height - 1)
 
         # debug.log("clipped screen cursor", str(self.screen.x) + "," + str(self.screen.y))
 
@@ -234,13 +233,3 @@ class EditorPanel(Panel):
     def handle(self, key):
         bindings.editor(key)(self, key)
 
-
-# Helpers.
-
-
-def adjust(maximum, minimum, n):
-    return minimum - n if n < minimum else maximum - n if n > maximum else 0
-
-
-def clip(maximum, minimum, n):
-    return n + adjust(maximum, minimum, n)

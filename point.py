@@ -12,6 +12,10 @@ class Point:
         self.x = -1
         self.y = -1
 
+    def clip(self, maxx, maxy):
+        self.x += correction(self.x, 0, maxx)
+        self.y += correction(self.y, 0, maxy)
+
     def move(self, x, y):
         self.x += x
         self.y += y
@@ -22,3 +26,13 @@ class Point:
 
     def valid(self):
         return self.x >= 0 and self.y >= 0
+
+
+def correction(element, lower, upper):
+    if element < lower:
+        return lower - element
+
+    if element > upper:
+        return upper - element
+
+    return 0

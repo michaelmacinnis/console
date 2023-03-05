@@ -10,7 +10,10 @@ class Buffer(collections.UserList):
         super().__init__(data)
 
     def append(self, raw):
-        self.insert(point.Point(len(self[-1]), len(self) - 1), raw)
+        self.insert(self.end(), raw)
+
+    def end(self):
+        return point.Point(len(self[-1]), len(self) - 1)
 
     def insert(self, cursor, raw):
         lines = split(raw)
