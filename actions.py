@@ -117,7 +117,9 @@ def delete_char(widget, key):
             # There are previous lines.
             widget.buffer.x = len(widget.text[prev])
             widget.text[prev] += widget.text[widget.buffer.y]
-            widget.text = widget.text[:widget.buffer.y] + widget.text[widget.buffer.y + 1:]
+            widget.text = (
+                widget.text[: widget.buffer.y] + widget.text[widget.buffer.y + 1 :]
+            )
             widget.buffer.y = prev
             widget.screen.x = widget.buffer.x
             widget.screen.y -= 1
@@ -135,7 +137,7 @@ def insert_char(widget, key):
             widget.text[: widget.buffer.y]
             + [widget.text[widget.buffer.y][: widget.buffer.x]]
             + [widget.text[widget.buffer.y][widget.buffer.x :]]
-            + widget.text[widget.buffer.y + 1:]
+            + widget.text[widget.buffer.y + 1 :]
         )
         widget.buffer.x = 0
         widget.buffer.y += 1
@@ -145,7 +147,9 @@ def insert_char(widget, key):
 
     if len(key) == 1 and curses.ascii.isprint(ord(key)):
         line = widget.text[widget.buffer.y]
-        widget.text[widget.buffer.y] = line[: widget.buffer.x] + key + line[widget.buffer.x :]
+        widget.text[widget.buffer.y] = (
+            line[: widget.buffer.x] + key + line[widget.buffer.x :]
+        )
         widget.buffer.x += 1
         widget.screen.x += 1
 
@@ -154,7 +158,9 @@ def mouse_left_pressed(widget, x, y):
     debug.log("mouse_left_pressed")
 
     widget.s.y = min(y + widget.buffer.y - widget.screen.y, len(widget.text) - 1)
-    widget.s.x = min(x + widget.buffer.x - widget.screen.x, len(widget.text[widget.s.y]) + 1)
+    widget.s.x = min(
+        x + widget.buffer.x - widget.screen.x, len(widget.text[widget.s.y]) + 1
+    )
 
     widget.button.x = x
     widget.button.y = y
@@ -208,7 +214,9 @@ def mouse_move(widget, x, y):
         widget.p1.x = r
         widget.p1.y = s
 
-    debug.log(f"selected from {widget.p0.x},{widget.p0.y} to {widget.p1.x},{widget.p1.y}")
+    debug.log(
+        f"selected from {widget.p0.x},{widget.p0.y} to {widget.p1.x},{widget.p1.y}"
+    )
 
 
 def paste_selection(widget, key):

@@ -137,9 +137,9 @@ def key_press(self):
         except curses.error:
             pass
 
-        if b & 65536: # In case curses.BUTTON4_PRESSED is not defined.
+        if b & 65536:  # In case curses.BUTTON4_PRESSED is not defined.
             key = "KEY_PPAGE"
-        elif b & 2097152: # curses.BUTTON5_PRESSED is not always defined.
+        elif b & 2097152:  # curses.BUTTON5_PRESSED is not always defined.
             key = "KEY_NPAGE"
         else:
             if y < self.buf.height:

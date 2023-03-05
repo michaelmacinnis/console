@@ -4,6 +4,7 @@ import re
 import debug
 import point
 
+
 class Buffer(collections.UserList):
     def __init__(self, data):
         super().__init__(data)
@@ -16,9 +17,7 @@ class Buffer(collections.UserList):
         debug.log(f"BUFFER inserting: {repr(lines)} at {cursor}")
         if len(lines) == 1:
             self[cursor.y] = (
-                self[cursor.y][: cursor.x]
-                + lines[0]
-                + self[cursor.y][cursor.x :]
+                self[cursor.y][: cursor.x] + lines[0] + self[cursor.y][cursor.x :]
             )
             return
 
@@ -27,7 +26,7 @@ class Buffer(collections.UserList):
             + [self[cursor.y][: cursor.x] + lines[0]]
             + lines[1:-1]
             + [lines[-1] + self[cursor.y][cursor.x :]]
-            + self[cursor.y + 1:]
+            + self[cursor.y + 1 :]
         )
 
     def raw(self):
@@ -35,11 +34,11 @@ class Buffer(collections.UserList):
 
     def remove(self, p0, p1):
         delta = 0
-        remainder = self[p1.y + 1:]
+        remainder = self[p1.y + 1 :]
 
         if p1.x > len(self[p1.y]):
             delta = 1
-            remainder = self[p1.y + 2:]
+            remainder = self[p1.y + 2 :]
 
             self[p0.y] = self[p0.y][: p0.x] + self[p1.y + 1]
         else:
@@ -52,7 +51,7 @@ class Buffer(collections.UserList):
             lines = [self[p0.y][p0.x : p1.x]]
         else:
             lines = [self[p0.y][p0.x :]]
-            lines.extend(self[p0.y + 1: p1.y])
+            lines.extend(self[p0.y + 1 : p1.y])
             lines.append(self[p1.y][: p1.x])
 
         raw = join(lines)
@@ -62,7 +61,8 @@ class Buffer(collections.UserList):
         return raw
 
 
-delim = re.compile(rb'\r?\n')
+delim = re.compile(rb"\r?\n")
+
 
 def join(lines):
     return "\n".join(lines).encode("utf8")
@@ -70,4 +70,3 @@ def join(lines):
 
 def split(raw):
     return list(line.decode("utf8") for line in delim.split(raw))
-

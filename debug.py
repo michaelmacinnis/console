@@ -14,7 +14,6 @@ def log(*args, **kwargs):
     print(*args, **kwargs)
 
 
-
 def on(flag=True):
     global logging
     logging = flag

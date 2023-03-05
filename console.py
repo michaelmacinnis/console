@@ -35,7 +35,7 @@ def canonical_mode(fd):
 
 def remove_suffix(b, suffix):
     if suffix and b.endswith(suffix):
-        return b[:-len(suffix)]
+        return b[: -len(suffix)]
     return b
 
 

@@ -98,9 +98,9 @@ class Panel:
             if idx < self.p0.y or idx > self.p1.y:
                 stdscr.attron(curses.A_NORMAL)
                 stdscr.addstr(offset, 0, line[col:][:span])
-                stdscr.hline(b' ', width - 1)
+                stdscr.hline(b" ", width - 1)
                 stdscr.attroff(curses.A_NORMAL)
-                stdscr.hline(b' ', width - 1)
+                stdscr.hline(b" ", width - 1)
                 offset += 1
                 idx += 1
                 continue
@@ -109,9 +109,9 @@ class Panel:
             if idx > self.p0.y and idx < self.p1.y:
                 stdscr.attron(curses.A_REVERSE)
                 stdscr.addstr(offset, 0, line[col:][:span])
-                stdscr.hline(b' ', 1)
+                stdscr.hline(b" ", 1)
                 stdscr.attroff(curses.A_REVERSE)
-                stdscr.hline(b' ', width - 1)
+                stdscr.hline(b" ", width - 1)
                 offset += 1
                 idx += 1
                 continue
@@ -135,7 +135,7 @@ class Panel:
                     span -= len(selected)
                     shift += len(selected)
 
-                    stdscr.addstr(offset, shift, b' ', curses.A_REVERSE)
+                    stdscr.addstr(offset, shift, b" ", curses.A_REVERSE)
 
             # The line is at the end of the selected region.
             if idx == self.p1.y:
@@ -148,18 +148,18 @@ class Panel:
 
                 if span > 0:
                     if self.p1.x > len(line):
-                        stdscr.addstr(offset, shift, b' ', curses.A_REVERSE)
+                        stdscr.addstr(offset, shift, b" ", curses.A_REVERSE)
                     else:
                         unselected = line[self.p1.x :][:span]
                         stdscr.addstr(offset, shift, unselected, curses.A_NORMAL)
 
-            stdscr.hline(b' ', width - 1)
+            stdscr.hline(b" ", width - 1)
             idx += 1
             offset += 1
 
         while n < height:
             stdscr.move(offset, 0)
-            stdscr.hline(b' ', width - 1)
+            stdscr.hline(b" ", width - 1)
             n += 1
             offset += 1
 
@@ -216,13 +216,17 @@ class EditorPanel(Panel):
                 self.text = buffer.Buffer([line.rstrip("\n\r") for line in file])
 
     def append(self, data):
-        update = self.buffer.y == len(self.text) - 1 and self.buffer.x == len(self.text[self.buffer.y])
+        update = self.buffer.y == len(self.text) - 1 and self.buffer.x == len(
+            self.text[self.buffer.y]
+        )
 
         self.text.append(data)
 
         if update:
             delta = len(self.text) - 1 - self.buffer.y
-            debug.log("delta", delta, "row", self.buffer.y, "len(self.txt)", len(self.text))
+            debug.log(
+                "delta", delta, "row", self.buffer.y, "len(self.txt)", len(self.text)
+            )
             self.screen.y += delta
             self.buffer.y += delta
             self.buffer.x = len(self.text[self.buffer.y])

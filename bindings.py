@@ -8,6 +8,7 @@ def cli(key):
 def editor(key):
     return editor_bindings.get(key, insert_char)
 
+
 def selection(key):
     return selection_bindings.get(key, None)
 
