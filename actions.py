@@ -34,22 +34,22 @@ def command_insert_char(panel, key):
 def copy_selection(panel, key):
     global clipboard
 
-    if any(n < 0 for n in (panel.r, panel.s, panel.u, panel.v)):
+    if any(n < 0 for n in (panel.p0.x, panel.p0.y, panel.p1.x, panel.p1.y)):
         return
 
-    if panel.s == panel.v:
-        clipboard = [panel.text[panel.s][panel.r : panel.u]]
+    if panel.p0.y == panel.p1.y:
+        clipboard = [panel.text[panel.p0.y][panel.p0.x : panel.p1.x]]
     else:
-        clipboard = [panel.text[panel.s][panel.r :]]
+        clipboard = [panel.text[panel.p0.y][panel.p0.x :]]
 
-        idx = panel.s + 1
-        while idx < panel.v:
+        idx = panel.p0.y + 1
+        while idx < panel.p1.y:
             clipboard.append(panel.text[idx])
             idx += 1
 
-        clipboard.append(panel.text[panel.v][: panel.u])
+        clipboard.append(panel.text[panel.p1.y][: panel.p1.x])
 
-    if panel.u > len(panel.text[panel.v]):
+    if panel.p1.x > len(panel.text[panel.p1.y]):
         clipboard.append("")
 
 
@@ -59,21 +59,21 @@ def cut_selection(panel, key):
     copy_selection(panel, key)
 
     delta = 0
-    remainder = panel.text[panel.v + 1:]
+    remainder = panel.text[panel.p1.y + 1:]
 
-    if panel.u > len(panel.text[panel.v]):
+    if panel.p1.x > len(panel.text[panel.p1.y]):
         delta = 1
-        remainder = panel.text[panel.v + 2:]
+        remainder = panel.text[panel.p1.y + 2:]
 
-        panel.text[panel.s] = panel.text[panel.s][: panel.r] + panel.text[panel.v + 1]
+        panel.text[panel.p0.y] = panel.text[panel.p0.y][: panel.p0.x] + panel.text[panel.p1.y + 1]
     else:
-        panel.text[panel.s] = panel.text[panel.s][: panel.r] + panel.text[panel.v][panel.u :]
+        panel.text[panel.p0.y] = panel.text[panel.p0.y][: panel.p0.x] + panel.text[panel.p1.y][panel.p1.x :]
 
-    panel.text = panel.text[: panel.s + 1] + remainder
+    panel.text = panel.text[: panel.p0.y + 1] + remainder
 
     # TODO: Fix up cursor adjustment.
-    #delta += panel.v - panel.s
-    #if delta and panel.buffer.y >= panel.s:
+    #delta += panel.p1.y - panel.p0.y
+    #if delta and panel.buffer.y >= panel.p0.y:
     #    panel.buffer.y -= delta
     #    panel.screen.y -= delta
 
@@ -182,16 +182,16 @@ def insert_char(panel, key):
 def mouse_left_pressed(panel, x, y):
     debug.log("mouse_left_pressed")
 
-    panel.marks = min(y + panel.buffer.y - panel.screen.y, len(panel.text) - 1)
-    panel.markr = min(x + panel.buffer.x - panel.screen.x, len(panel.text[panel.marks]) + 1)
+    panel.s.y = min(y + panel.buffer.y - panel.screen.y, len(panel.text) - 1)
+    panel.s.x = min(x + panel.buffer.x - panel.screen.x, len(panel.text[panel.s.y]) + 1)
 
     panel.button.x = x
     panel.button.y = y
 
-    panel.r = -1
-    panel.s = -1
-    panel.u = -1
-    panel.v = -1
+    panel.p0.x = -1
+    panel.p0.y = -1
+    panel.p1.x = -1
+    panel.p1.y = -1
 
 
 def mouse_left_released(panel, x, y):
@@ -206,13 +206,13 @@ def mouse_left_released(panel, x, y):
     panel.button.x = -1
     panel.button.y = -1
 
-    if panel.markr == -1 or panel.marks == -1:
+    if panel.s.x == -1 or panel.s.y == -1:
         return
 
     mouse_move(panel, x, y)
 
-    panel.markr = -1
-    panel.marks = -1
+    panel.s.x = -1
+    panel.s.y = -1
 
     return panel
 
@@ -220,24 +220,24 @@ def mouse_left_released(panel, x, y):
 def mouse_move(panel, x, y):
     debug.log("mouse_move")
 
-    if panel.markr == -1 or panel.marks == -1:
+    if panel.s.x == -1 or panel.s.y == -1:
         return
 
     s = min(y + panel.buffer.y - panel.screen.y, len(panel.text) - 1)
     r = min(x + panel.buffer.x - panel.screen.x, len(panel.text[s]) + 1)
 
-    if s < panel.marks or s == panel.marks and r < panel.markr:
-        panel.r = r
-        panel.s = s
-        panel.u = panel.markr
-        panel.v = panel.marks
+    if s < panel.s.y or s == panel.s.y and r < panel.s.x:
+        panel.p0.x = r
+        panel.p0.y = s
+        panel.p1.x = panel.s.x
+        panel.p1.y = panel.s.y
     else:
-        panel.r = panel.markr
-        panel.s = panel.marks
-        panel.u = r
-        panel.v = s
+        panel.p0.x = panel.s.x
+        panel.p0.y = panel.s.y
+        panel.p1.x = r
+        panel.p1.y = s
 
-    debug.log(f"selected from {panel.r},{panel.s} to {panel.u},{panel.v}")
+    debug.log(f"selected from {panel.p0.x},{panel.p0.y} to {panel.p1.x},{panel.p1.y}")
 
 
 def paste_selection(panel, key):

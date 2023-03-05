@@ -13,7 +13,10 @@ class Panel:
         self.height = 0
 
     def clear(self):
+        # The buffer point uses buffer co-ordinates.
         self.buffer = point.Point(0, 0)
+
+        # The button and screen points use display co-ordinates.
         self.button = point.Point(0, 0)
         self.screen = point.Point(0, 0)
 
@@ -23,13 +26,10 @@ class Panel:
         self.clear_selection()
 
     def clear_selection(self):
-        self.r = -1
-        self.s = -1
-        self.u = -1
-        self.v = -1
-
-        self.markr = -1
-        self.marks = -1
+        # The beginning, ending, and selection points use buffer co-ordinates.
+        self.p0 = point.Point(-1, -1)
+        self.p1 = point.Point(-1, -1)
+        self.s = point.Point(-1, -1)
 
     def mouse(self, b, x, y):
         event = 0
@@ -93,7 +93,7 @@ class Panel:
             # debug.log("line", offset, row, line)
 
             # The line is not within the selected region.
-            if idx < self.s or idx > self.v:
+            if idx < self.p0.y or idx > self.p1.y:
                 stdscr.attron(curses.A_NORMAL)
                 stdscr.addstr(offset, 0, line[col:][:span])
                 stdscr.hline(b' ', width - 1)
@@ -104,7 +104,7 @@ class Panel:
                 continue
 
             # The line is completely with the selected region.
-            if idx > self.s and idx < self.v:
+            if idx > self.p0.y and idx < self.p1.y:
                 stdscr.attron(curses.A_REVERSE)
                 stdscr.addstr(offset, 0, line[col:][:span])
                 stdscr.hline(b' ', 1)
@@ -117,16 +117,16 @@ class Panel:
             shift = 0
 
             # The line is at the start of the selected region.
-            if idx == self.s:
+            if idx == self.p0.y:
                 # Display the unselected part of the line (if any).
-                if self.r > col + shift:
-                    unselected = line[col + shift : self.r][:span]
+                if self.p0.x > col + shift:
+                    unselected = line[col + shift : self.p0.x][:span]
                     stdscr.addstr(offset, shift, unselected, curses.A_NORMAL)
 
                     span -= len(unselected)
                     shift += len(unselected)
 
-                if span > 0 and idx != self.v:
+                if span > 0 and idx != self.p1.y:
                     selected = line[col + shift :][:span]
                     stdscr.addstr(offset, shift, selected, curses.A_REVERSE)
 
@@ -136,19 +136,19 @@ class Panel:
                     stdscr.addstr(offset, shift, b' ', curses.A_REVERSE)
 
             # The line is at the end of the selected region.
-            if idx == self.v:
-                if span > 0 and self.u > col + shift:
-                    selected = line[col + shift : self.u][:span]
+            if idx == self.p1.y:
+                if span > 0 and self.p1.x > col + shift:
+                    selected = line[col + shift : self.p1.x][:span]
                     stdscr.addstr(offset, shift, selected, curses.A_REVERSE)
 
                     span -= len(selected)
                     shift += len(selected)
 
                 if span > 0:
-                    if self.u > len(line):
+                    if self.p1.x > len(line):
                         stdscr.addstr(offset, shift, b' ', curses.A_REVERSE)
                     else:
-                        unselected = line[self.u :][:span]
+                        unselected = line[self.p1.x :][:span]
                         stdscr.addstr(offset, shift, unselected, curses.A_NORMAL)
 
             stdscr.hline(b' ', width - 1)
