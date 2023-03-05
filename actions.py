@@ -73,8 +73,8 @@ def cut_selection(panel, key):
 
     # TODO: Fix up cursor adjustment.
     #delta += panel.v - panel.s
-    #if delta and panel.row >= panel.s:
-    #    panel.row -= delta
+    #if delta and panel.buffer.y >= panel.s:
+    #    panel.buffer.y -= delta
     #    panel.screen.y -= delta
 
     panel.clear_selection()
@@ -83,107 +83,107 @@ def cut_selection(panel, key):
 
 
 def cursor_down(panel, key):
-    panel.row += 1
+    panel.buffer.y += 1
     panel.screen.y += 1
 
 
 def cursor_end_of_buffer(panel, key):
-    panel.row = len(panel.text) - 1
-    panel.col = len(panel.text[panel.row])
-    panel.screen.x = panel.col
-    panel.screen.y = panel.row
+    panel.buffer.y = len(panel.text) - 1
+    panel.buffer.x = len(panel.text[panel.buffer.y])
+    panel.screen.x = panel.buffer.x
+    panel.screen.y = panel.buffer.y
 
 
 def cursor_end_of_line(panel, key):
-    panel.col = len(panel.text[panel.row])
-    panel.screen.x = panel.col
+    panel.buffer.x = len(panel.text[panel.buffer.y])
+    panel.screen.x = panel.buffer.x
 
 
 def cursor_left(panel, key):
-    panel.col -= 1
+    panel.buffer.x -= 1
     panel.screen.x -= 1
 
 
 def cursor_next_page(panel, key):
-    panel.row = min(len(panel.text) - 1, panel.row + panel.height)
-    if panel.row == len(panel.text) - 1:
+    panel.buffer.y = min(len(panel.text) - 1, panel.buffer.y + panel.height)
+    if panel.buffer.y == len(panel.text) - 1:
         panel.screen.y = panel.height - 1
 
 
 def cursor_prev_page(panel, key):
-    panel.row = max(0, panel.row - panel.height)
-    if not panel.row:
+    panel.buffer.y = max(0, panel.buffer.y - panel.height)
+    if not panel.buffer.y:
         panel.screen.y = 0
 
 
 def cursor_right(panel, key):
-    panel.col += 1
+    panel.buffer.x += 1
     panel.screen.x += 1
 
 
 def cursor_start_of_buffer(panel, key):
-    panel.col = 0
-    panel.row = 0
+    panel.buffer.x = 0
+    panel.buffer.y = 0
     panel.screen.x = 0
     panel.screen.y = 0
 
 
 def cursor_start_of_line(panel, key):
-    panel.col = 0
+    panel.buffer.x = 0
     panel.screen.x = 0
 
 
 def cursor_up(panel, key):
-    panel.row -= 1
+    panel.buffer.y -= 1
     panel.screen.y -= 1
 
 
 def delete_char(panel, key):
-    if not panel.col:
+    if not panel.buffer.x:
         # At the beginning of a line.
-        prev = panel.row - 1
+        prev = panel.buffer.y - 1
         if prev > 0:
             # There are previous lines.
-            panel.col = len(panel.text[prev])
-            panel.text[prev] += panel.text[panel.row]
-            panel.text = panel.text[:panel.row] + panel.text[panel.row + 1:]
-            panel.row = prev
-            panel.screen.x = panel.col
+            panel.buffer.x = len(panel.text[prev])
+            panel.text[prev] += panel.text[panel.buffer.y]
+            panel.text = panel.text[:panel.buffer.y] + panel.text[panel.buffer.y + 1:]
+            panel.buffer.y = prev
+            panel.screen.x = panel.buffer.x
             panel.screen.y -= 1
         return
 
-    line = panel.text[panel.row]
-    panel.text[panel.row] = line[: panel.col - 1] + line[panel.col :]
-    panel.col -= 1
+    line = panel.text[panel.buffer.y]
+    panel.text[panel.buffer.y] = line[: panel.buffer.x - 1] + line[panel.buffer.x :]
+    panel.buffer.x -= 1
     panel.screen.x -= 1
 
 
 def insert_char(panel, key):
     if key == "^J":
         panel.text = (
-            panel.text[: panel.row]
-            + [panel.text[panel.row][: panel.col]]
-            + [panel.text[panel.row][panel.col :]]
-            + panel.text[panel.row + 1:]
+            panel.text[: panel.buffer.y]
+            + [panel.text[panel.buffer.y][: panel.buffer.x]]
+            + [panel.text[panel.buffer.y][panel.buffer.x :]]
+            + panel.text[panel.buffer.y + 1:]
         )
-        panel.col = 0
-        panel.row += 1
+        panel.buffer.x = 0
+        panel.buffer.y += 1
         panel.screen.x = 0
         panel.screen.y += 1
         return
 
     if len(key) == 1 and curses.ascii.isprint(ord(key)):
-        line = panel.text[panel.row]
-        panel.text[panel.row] = line[: panel.col] + key + line[panel.col :]
-        panel.col += 1
+        line = panel.text[panel.buffer.y]
+        panel.text[panel.buffer.y] = line[: panel.buffer.x] + key + line[panel.buffer.x :]
+        panel.buffer.x += 1
         panel.screen.x += 1
 
 
 def mouse_left_pressed(panel, x, y):
     debug.log("mouse_left_pressed")
 
-    panel.marks = min(y + panel.row - panel.screen.y, len(panel.text) - 1)
-    panel.markr = min(x + panel.col - panel.screen.x, len(panel.text[panel.marks]) + 1)
+    panel.marks = min(y + panel.buffer.y - panel.screen.y, len(panel.text) - 1)
+    panel.markr = min(x + panel.buffer.x - panel.screen.x, len(panel.text[panel.marks]) + 1)
 
     panel.button.x = x
     panel.button.y = y
@@ -198,8 +198,8 @@ def mouse_left_released(panel, x, y):
     debug.log("mouse_left_released")
 
     if panel.button.x == x and panel.button.y == y:
-        panel.col += x - panel.screen.x
-        panel.row += y - panel.screen.y
+        panel.buffer.x += x - panel.screen.x
+        panel.buffer.y += y - panel.screen.y
         panel.screen.x = x
         panel.screen.y = y
 
@@ -223,8 +223,8 @@ def mouse_move(panel, x, y):
     if panel.markr == -1 or panel.marks == -1:
         return
 
-    s = min(y + panel.row - panel.screen.y, len(panel.text) - 1)
-    r = min(x + panel.col - panel.screen.x, len(panel.text[s]) + 1)
+    s = min(y + panel.buffer.y - panel.screen.y, len(panel.text) - 1)
+    r = min(x + panel.buffer.x - panel.screen.x, len(panel.text[s]) + 1)
 
     if s < panel.marks or s == panel.marks and r < panel.markr:
         panel.r = r
@@ -246,19 +246,19 @@ def paste_selection(panel, key):
 
     if len(clipboard) == 1:
         debug.log(f"PASTING: {repr(clipboard[0])}")
-        panel.text[panel.row] = (
-            panel.text[panel.row][: panel.col]
+        panel.text[panel.buffer.y] = (
+            panel.text[panel.buffer.y][: panel.buffer.x]
             + clipboard[0]
-            + panel.text[panel.row][panel.col :]
+            + panel.text[panel.buffer.y][panel.buffer.x :]
         )
         return
 
     panel.text = (
-        panel.text[: panel.row]
-        + [panel.text[panel.row][: panel.col] + clipboard[0]]
+        panel.text[: panel.buffer.y]
+        + [panel.text[panel.buffer.y][: panel.buffer.x] + clipboard[0]]
         + clipboard[1:-1]
-        + [clipboard[-1] + panel.text[panel.row][panel.col :]]
-        + panel.text[panel.row + 1:]
+        + [clipboard[-1] + panel.text[panel.buffer.y][panel.buffer.x :]]
+        + panel.text[panel.buffer.y + 1:]
     )
 
 
