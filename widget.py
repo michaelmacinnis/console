@@ -13,8 +13,11 @@ class Panel:
         self.height = 0
 
     def clear(self):
-        # The buffer point uses buffer co-ordinates.
+        # The buffer and selection points uses buffer co-ordinates.
         self.buffer = point.Point(0, 0)
+        self.p0 = point.Point(-1, -1)
+        self.p1 = point.Point(-1, -1)
+        self.s = point.Point(-1, -1)
 
         # The button and screen points use display co-ordinates.
         self.button = point.Point(0, 0)
@@ -23,13 +26,11 @@ class Panel:
         self.clipboard = []
         self.text = [""]
 
-        self.clear_selection()
-
     def clear_selection(self):
         # The beginning, ending, and selection points use buffer co-ordinates.
-        self.p0 = point.Point(-1, -1)
-        self.p1 = point.Point(-1, -1)
-        self.s = point.Point(-1, -1)
+        self.p0.set(-1, -1)
+        self.p1.set(-1, -1)
+        self.s.set(-1, -1)
 
     def mouse(self, b, x, y):
         event = 0
@@ -194,15 +195,12 @@ class CommandPanel(Panel):
             return
 
         text = list(line.decode("utf8") for line in data.splitlines())
-        self.buffer.y += len(text)
-        self.screen.y += len(text)
 
-        text.append("")
-        self.buffer.x += len(text[-1])
-        self.screen.x += len(text[-1])
+        dy = len(text)
+        self.buffer.move(0, dy)
+        self.screen.move(0, dy)
 
-        text[-1] += self.text[0]
-        text.extend(self.text[1:])
+        text.extend(self.text)
 
         self.text = text
 
