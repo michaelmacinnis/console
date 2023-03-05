@@ -8,8 +8,16 @@ clipboard = None
 
 # Actions.
 def command_insert_char(widget, key):
+    if key == "^Q":
+        if len(widget.text) == 1 and not len(widget.text[0]):
+            widget.complete = b"\x04"
+            widget.clear()
+            return
+
+    insert_char(widget, key)
+
     if key == "^J":
-        text = "\n".join(widget.text + [""]).encode("utf8")
+        text = "\n".join(widget.text).encode("utf8")
         debug.log(text)
 
         if widget.multiline:
@@ -21,14 +29,6 @@ def command_insert_char(widget, key):
             widget.complete = text
             widget.clear()
             return
-
-    if key == "^Q":
-        if len(widget.text) == 1 and not len(widget.text[0]):
-            widget.complete = b"\x04"
-            widget.clear()
-            return
-
-    insert_char(widget, key)
 
 
 def copy_selection(widget, key):
