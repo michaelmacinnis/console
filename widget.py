@@ -2,6 +2,7 @@ import curses
 
 import actions
 import bindings
+import buffer
 import debug
 import point
 
@@ -15,6 +16,7 @@ class Panel:
     def clear(self):
         # The buffer and selection points uses buffer co-ordinates.
         self.buffer = point.Point(0, 0)
+
         self.p0 = point.Point(-1, -1)
         self.p1 = point.Point(-1, -1)
         self.s = point.Point(-1, -1)
@@ -23,8 +25,7 @@ class Panel:
         self.button = point.Point(0, 0)
         self.screen = point.Point(0, 0)
 
-        self.clipboard = []
-        self.text = [""]
+        self.text = buffer.Buffer([""])
 
     def clear_selection(self):
         # The beginning, ending, and selection points use buffer co-ordinates.
@@ -212,7 +213,7 @@ class EditorPanel(Panel):
         self.filename = filename
         if filename:
             with open(filename, "r") as file:
-                self.text = [line.rstrip("\n\r") for line in file]
+                self.text = buffer.Buffer([line.rstrip("\n\r") for line in file])
 
     def append(self, data):
         update = self.buffer.y == len(self.text) - 1 and self.buffer.x == len(self.text[self.buffer.y])
