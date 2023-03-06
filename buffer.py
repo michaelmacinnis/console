@@ -5,6 +5,7 @@ import re
 import debug
 import point
 
+
 class Buffer(collections.UserList):
     def __init__(self, data):
         super().__init__(data)
@@ -50,7 +51,7 @@ class Buffer(collections.UserList):
         self.data = self[: p0.y + 1] + remainder
 
     def render(self, row, col, width, p0, p1):
-        blank = ' ' * width
+        blank = " " * width
         if not 0 <= row < len(self):
             yield Chunk(curses.A_NORMAL, 0, blank)
             return
@@ -73,7 +74,6 @@ class Buffer(collections.UserList):
 
             yield Chunk(curses.A_NORMAL, shift, blank[:width])
             return
-
 
         if row == p0.y:
             # The line is at the start of the selected region.
@@ -107,7 +107,7 @@ class Buffer(collections.UserList):
                     width -= 1
 
                 else:
-                    unselected = line[p1.x:][:width]
+                    unselected = line[p1.x :][:width]
                     yield Chunk(curses.A_NORMAL, shift, unselected)
 
                     shift += len(unselected)
@@ -131,7 +131,7 @@ class Buffer(collections.UserList):
         return raw
 
 
-Chunk = collections.namedtuple('Chunk', 'attr col str')
+Chunk = collections.namedtuple("Chunk", "attr col str")
 
 delim = re.compile(rb"\r?\n")
 

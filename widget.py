@@ -15,7 +15,7 @@ class Panel:
 
     def clear(self):
         # The buffer and selection points uses buffer co-ordinates.
-        self.buffer = point.Point(0, 0) # TODO: Rename to cursor.
+        self.buffer = point.Point(0, 0)  # TODO: Rename to cursor.
 
         self.p0 = point.Point()
         self.p1 = point.Point()
