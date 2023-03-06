@@ -113,7 +113,7 @@ def delete_char(widget, key):
     if not widget.buffer.x:
         # At the beginning of a line.
         prev = widget.buffer.y - 1
-        if prev > 0:
+        if prev >= 0:
             # There are previous lines.
             widget.buffer.x = len(widget.text[prev])
             widget.text[prev] += widget.text[widget.buffer.y]
