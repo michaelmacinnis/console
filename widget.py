@@ -47,12 +47,7 @@ class Panel:
         }.get(event, lambda p, x, y: None)(self, x, y)
 
     def render(self, stdscr, offset, height, width):
-        # debug.log("rendering", width, "x", height)
-        # debug.log("text cursor at", str(self.buffer.x) + "," + str(self.buffer.y))
-        # debug.log("screen cursor at", str(self.screen.x) + "," + str(self.screen.y))
-
-        # Save offset and height.
-        self.offset = offset
+        # Save height.
         self.height = height
 
         n = point.correction(self.buffer.y, 0, len(self.text) - 1)
@@ -63,6 +58,7 @@ class Panel:
         self.buffer.x += n
         self.screen.x += n
 
+        # Largest y may be less than height - 1 if the buffer is smaller.
         self.screen.clip(width - 1, min(height - 1, self.buffer.y))
 
         col = max(0, self.buffer.x - self.screen.x)
@@ -73,8 +69,6 @@ class Panel:
                 addstr(stdscr, offset + n, d.col, d.str, d.attr)
 
         stdscr.move(self.screen.y + offset, self.screen.x)
-
-        # debug.log()
 
 
 class CommandPanel(Panel):
@@ -148,4 +142,5 @@ def addstr(stdscr, *args):
     try:
         stdscr.addstr(*args)
     except curses.error:
+        # Curses throws an exception when printing to the last row and column.
         pass
