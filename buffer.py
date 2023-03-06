@@ -1,9 +1,9 @@
 import collections
+import curses
 import re
 
 import debug
 import point
-
 
 class Buffer(collections.UserList):
     def __init__(self, data):
@@ -49,6 +49,73 @@ class Buffer(collections.UserList):
 
         self.data = self[: p0.y + 1] + remainder
 
+    def render(self, row, col, width, p0, p1):
+        blank = ' ' * width
+        if not 0 <= row < len(self):
+            yield Chunk(curses.A_NORMAL, 0, blank)
+            return
+
+        line = self[row]
+        shift = 0
+
+        if row < p0.y or row > p1.y:
+            # The line is not within the selected region.
+            yield Chunk(curses.A_NORMAL, 0, (line[col:] + blank)[:width])
+            return
+
+        if row > p0.y and row < p1.y:
+            # The line is completely within the selected region.
+            line += blank[:1]
+            yield Chunk(curses.A_REVERSE, 0, line[col:][:width])
+
+            shift += len(line)
+            width -= len(line)
+
+            yield Chunk(curses.A_NORMAL, shift, blank[:width])
+            return
+
+
+        if row == p0.y:
+            # The line is at the start of the selected region.
+            if col < p0.x:
+                unselected = line[col : p0.x][:width]
+                yield Chunk(curses.A_NORMAL, 0, unselected)
+
+                shift += len(unselected)
+                width -= len(unselected)
+
+            if width > 0 and row < p1.y:
+                selected = (line[col + shift :] + blank[:1])[:width]
+                yield Chunk(curses.A_REVERSE, shift, selected)
+
+                shift += len(selected)
+                width -= len(selected)
+
+        if row == p1.y:
+            if width > 0 and col + shift < p1.x:
+                selected = line[col + shift : p1.x][:width]
+                yield Chunk(curses.A_REVERSE, shift, selected)
+
+                shift += len(selected)
+                width -= len(selected)
+
+            if width > 0:
+                if len(line) < p1.x:
+                    yield Chunk(curses.A_REVERSE, shift, blank[:1])
+
+                    shift += 1
+                    width -= 1
+
+                else:
+                    unselected = line[p1.x:][:width]
+                    yield Chunk(curses.A_NORMAL, shift, unselected)
+
+                    shift += len(unselected)
+                    width -= len(unselected)
+
+        if width:
+            yield Chunk(curses.A_NORMAL, shift, blank[:width])
+
     def select(self, p0, p1):
         if p0.y == p1.y:
             lines = [self[p0.y][p0.x : p1.x]]
@@ -63,6 +130,8 @@ class Buffer(collections.UserList):
 
         return raw
 
+
+Chunk = collections.namedtuple('Chunk', 'attr col str')
 
 delim = re.compile(rb"\r?\n")
 
