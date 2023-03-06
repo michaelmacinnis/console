@@ -105,7 +105,7 @@ class Buffer(collections.UserList):
         remainder = self[p1.y + 1 :]
 
         if p1.x > len(self[p1.y]):
-            below = ''
+            below = ""
             if len(remainder):
                 below = remainder[:1][0]
                 remainder = remainder[1:]

@@ -67,7 +67,7 @@ def main(term):
 
     canonical = True
     clear(term, canonical)
-    
+
     while True:
         if canonical:
             term.render()
