@@ -25,7 +25,15 @@ STDOUT_FILENO = 1
 STDERR_FILENO = 2
 
 
-def canonical_mode(canonical, fd, term):
+def extract_type_ahead(data):
+    idx = data.find(MULTI_LINE)
+    if idx < 0:
+        return data, None
+
+    return data[:idx], remove_suffix(data[idx + len(MULTI_LINE) :], b"\r\n")
+
+
+def handle_mode_change(canonical, fd, term):
     lst = tty.tcgetattr(fd)
 
     icanon_set = lst[3] & tty.ICANON > 0
@@ -45,22 +53,17 @@ def remove_suffix(b, suffix):
     return b
 
 
-def extract_type_ahead(data):
-    idx = data.find(MULTI_LINE)
-    if idx < 0:
-        return data, None
-
-    return data[:idx], remove_suffix(data[idx + len(MULTI_LINE) :], b"\r\n")
-
-
 def main(term):
     """Main event loop.
     Handles
             input from program running in a pseudo-terminal (child_fd);
             input from the user through the terminal (STDIN_FILENO);
             special events sent using the self-pipe trick (pfds[0])."""
-    canonical = canonical_mode(False, child_fd, term)
 
+    canonical = True
+    resize()
+    term.stdscr.clear()
+    
     while True:
         if canonical:
             term.render()
@@ -87,7 +90,9 @@ def main(term):
 
                 data, type_ahead = extract_type_ahead(data)
                 if type_ahead is not None:
-                    canonical = canonical_mode(canonical, child_fd, term)
+                    canonical = True
+                    resize()
+                    term.stdscr.clear()
 
                     term.type_ahead(type_ahead)
 
@@ -97,16 +102,10 @@ def main(term):
                     # TODO: Parse and look for specific escape codes.
                     if data.startswith(b"\x1b[?1049h") or data.startswith(b"\x1b[?"):
                         write_all(STDOUT_FILENO, data)
-
-                        # debug.log("after read (no prompt)")
-                        canonical = canonical_mode(canonical, child_fd, term)
                     elif data:
                         term.output(data)
                 else:
                     write_all(STDOUT_FILENO, data)
-
-                    # debug.log("after read (not canonical)")
-                    canonical = canonical_mode(canonical, child_fd, term)
 
         if STDIN_FILENO in rfds:
             if canonical:
@@ -126,8 +125,8 @@ def main(term):
                 break
 
         if child_fd in xfds:
+            canonical = handle_mode_change(canonical, child_fd, term)
             # debug.log("after mode change")
-            canonical = canonical_mode(canonical, child_fd, term)
 
 
 def pipe():
