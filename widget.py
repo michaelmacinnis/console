@@ -65,8 +65,9 @@ class Panel:
         row = max(0, self.buffer.y - self.screen.y)
 
         for n in range(height):
-            for d in self.text.render(width, row + n, col, self.p0, self.p1):
-                addstr(stdscr, offset + n, d.col, d.str, d.attr)
+            for c in self.text.chunks(width, row + n, col, self.p0, self.p1):
+                attr = curses.A_REVERSE if c.sel else curses.A_NORMAL
+                addstr(stdscr, offset + n, c.col, c.str, attr)
 
         stdscr.move(self.screen.y + offset, self.screen.x)
 
