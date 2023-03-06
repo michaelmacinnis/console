@@ -102,14 +102,15 @@ class Buffer(collections.UserList):
         return join(self)
 
     def remove(self, p0, p1):
-        delta = 0
         remainder = self[p1.y + 1 :]
 
         if p1.x > len(self[p1.y]):
-            delta = 1
-            remainder = self[p1.y + 2 :]
+            below = ''
+            if len(remainder):
+                below = remainder[:1][0]
+                remainder = remainder[1:]
 
-            self[p0.y] = self[p0.y][: p0.x] + self[p1.y + 1]
+            self[p0.y] = self[p0.y][: p0.x] + below
         else:
             self[p0.y] = self[p0.y][: p0.x] + self[p1.y][p1.x :]
 
@@ -141,4 +142,4 @@ def join(lines):
 
 
 def split(raw):
-    return list(line.decode("utf8") for line in delim.split(raw))
+    return list(line.expandtabs().decode("utf8") for line in delim.split(raw))
