@@ -25,6 +25,12 @@ STDOUT_FILENO = 1
 STDERR_FILENO = 2
 
 
+def clear(term, canonical):
+    resize()
+    if canonical:
+        term.stdscr.clear()
+
+
 def extract_type_ahead(data):
     idx = data.find(MULTI_LINE)
     if idx < 0:
@@ -33,16 +39,15 @@ def extract_type_ahead(data):
     return data[:idx], remove_suffix(data[idx + len(MULTI_LINE) :], b"\r\n")
 
 
-def handle_mode_change(canonical, fd, term):
+def handle_mode_change(term, canonical, fd):
     lst = tty.tcgetattr(fd)
 
     icanon_set = lst[3] & tty.ICANON > 0
     if icanon_set != canonical:
+        # Mode change.
         mode.print(lst)
 
-        resize()
-        if icanon_set:
-            term.stdscr.clear()
+        clear(term, icanon_set)
 
     return icanon_set
 
@@ -61,8 +66,7 @@ def main(term):
             special events sent using the self-pipe trick (pfds[0])."""
 
     canonical = True
-    resize()
-    term.stdscr.clear()
+    clear(term, canonical)
     
     while True:
         if canonical:
@@ -91,8 +95,7 @@ def main(term):
                 data, type_ahead = extract_type_ahead(data)
                 if type_ahead is not None:
                     canonical = True
-                    resize()
-                    term.stdscr.clear()
+                    clear(term, canonical)
 
                     term.type_ahead(type_ahead)
 
@@ -125,7 +128,7 @@ def main(term):
                 break
 
         if child_fd in xfds:
-            canonical = handle_mode_change(canonical, child_fd, term)
+            canonical = handle_mode_change(term, canonical, child_fd)
             # debug.log("after mode change")
 
 
