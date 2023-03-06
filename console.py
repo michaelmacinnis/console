@@ -25,12 +25,18 @@ STDOUT_FILENO = 1
 STDERR_FILENO = 2
 
 
-def canonical_mode(fd):
+def canonical_mode(canonical, fd, term):
     lst = tty.tcgetattr(fd)
 
-    mode.print(lst)
+    icanon_set = lst[3] & tty.ICANON > 0
+    if icanon_set != canonical:
+        mode.print(lst)
 
-    return lst[3] & tty.ICANON > 0
+        resize()
+        if icanon_set:
+            term.stdscr.clear()
+
+    return icanon_set
 
 
 def remove_suffix(b, suffix):
@@ -53,9 +59,7 @@ def main(term):
             input from program running in a pseudo-terminal (child_fd);
             input from the user through the terminal (STDIN_FILENO);
             special events sent using the self-pipe trick (pfds[0])."""
-    resize()
-
-    canonical = True
+    canonical = canonical_mode(False, child_fd, term)
 
     while True:
         if canonical:
@@ -83,10 +87,7 @@ def main(term):
 
                 data, type_ahead = extract_type_ahead(data)
                 if type_ahead is not None:
-                    if not canonical:
-                        term.stdscr.clear()
-
-                    canonical = True
+                    canonical = canonical_mode(canonical, child_fd, term)
 
                     term.type_ahead(type_ahead)
 
@@ -98,16 +99,14 @@ def main(term):
                         write_all(STDOUT_FILENO, data)
 
                         # debug.log("after read (no prompt)")
-                        canonical = canonical_mode(child_fd)
+                        canonical = canonical_mode(canonical, child_fd, term)
                     elif data:
                         term.output(data)
                 else:
                     write_all(STDOUT_FILENO, data)
 
                     # debug.log("after read (not canonical)")
-                    canonical = canonical_mode(child_fd)
-                    if canonical:
-                        term.stdscr.clear()
+                    canonical = canonical_mode(canonical, child_fd, term)
 
         if STDIN_FILENO in rfds:
             if canonical:
@@ -128,11 +127,7 @@ def main(term):
 
         if child_fd in xfds:
             # debug.log("after mode change")
-            canonical = canonical_mode(child_fd)
-            if not canonical:
-                resize()
-            else:
-                term.stdscr.clear()
+            canonical = canonical_mode(canonical, child_fd, term)
 
 
 def pipe():
