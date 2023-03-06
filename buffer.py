@@ -50,7 +50,7 @@ class Buffer(collections.UserList):
 
         self.data = self[: p0.y + 1] + remainder
 
-    def render(self, row, col, width, p0, p1):
+    def render(self, width, row, col, p0, p1):
         blank = " " * width
         shift = 0
 
@@ -73,44 +73,45 @@ class Buffer(collections.UserList):
                 shift += len(selected)
                 width -= len(selected)
 
-        if row == p0.y:
-            # The line is at the start of the selected region.
-            if col < p0.x:
-                unselected = line[col : p0.x][:width]
-                yield Chunk(curses.A_NORMAL, 0, unselected)
-
-                shift += len(unselected)
-                width -= len(unselected)
-
-            if width > 0 and row < p1.y:
-                selected = (line[col + shift :] + blank[:1])[:width]
-                yield Chunk(curses.A_REVERSE, shift, selected)
-
-                shift += len(selected)
-                width -= len(selected)
-
-        if row == p1.y:
-            # The line is at the end of the selected region.
-            if width > 0 and col + shift < p1.x:
-                selected = line[col + shift : p1.x][:width]
-                yield Chunk(curses.A_REVERSE, shift, selected)
-
-                shift += len(selected)
-                width -= len(selected)
-
-            if width > 0:
-                if len(line) < p1.x:
-                    yield Chunk(curses.A_REVERSE, shift, blank[:1])
-
-                    shift += 1
-                    width -= 1
-
-                else:
-                    unselected = line[p1.x :][:width]
-                    yield Chunk(curses.A_NORMAL, shift, unselected)
+            if row == p0.y:
+                # The line is at the start of the selected region.
+                if col < p0.x:
+                    unselected = line[col : p0.x][:width]
+                    yield Chunk(curses.A_NORMAL, 0, unselected)
 
                     shift += len(unselected)
                     width -= len(unselected)
+
+                if width > 0 and row < p1.y:
+                    selected = (line[col + shift :] + blank[:1])[:width]
+                    yield Chunk(curses.A_REVERSE, shift, selected)
+
+                    shift += len(selected)
+                    width -= len(selected)
+
+            if row == p1.y:
+                # The line is at the end of the selected region.
+                if width > 0 and col + shift < p1.x:
+                    selected = line[col + shift : p1.x][:width]
+                    yield Chunk(curses.A_REVERSE, shift, selected)
+
+                    shift += len(selected)
+                    width -= len(selected)
+
+                if width > 0:
+                    if len(line) < p1.x:
+                        # The "newline" is also selected.
+                        yield Chunk(curses.A_REVERSE, shift, blank[:1])
+
+                        shift += 1
+                        width -= 1
+
+                    else:
+                        unselected = line[p1.x :][:width]
+                        yield Chunk(curses.A_NORMAL, shift, unselected)
+
+                        shift += len(unselected)
+                        width -= len(unselected)
 
         if width:
             yield Chunk(curses.A_NORMAL, shift, blank[:width])
