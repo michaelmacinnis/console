@@ -104,6 +104,7 @@ def main(term):
                 if canonical:
                     # TODO: Parse and look for specific escape codes.
                     if data.startswith(b"\x1b[?1049h") or data.startswith(b"\x1b[?"):
+                        canonical = handle_mode_change(term, canonical, child_fd)
                         write_all(STDOUT_FILENO, data)
                     elif data:
                         term.output(data)
