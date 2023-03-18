@@ -37,8 +37,8 @@ class Panel:
         self.height = 0
 
     def clear(self):
-        # The buffer and selection points uses buffer co-ordinates.
-        self.buffer = point.Point(0, 0)  # TODO: Rename to cursor.
+        # The cursor and selection points uses buffer co-ordinates.
+        self.cursor = point.Point(0, 0)
 
         self.p0 = point.Point()
         self.p1 = point.Point()
@@ -73,19 +73,19 @@ class Panel:
         # Save height.
         self.height = height
 
-        n = point.correction(self.buffer.y, 0, len(self.text) - 1)
-        self.buffer.y += n
+        n = point.correction(self.cursor.y, 0, len(self.text) - 1)
+        self.cursor.y += n
         self.screen.y += n
 
-        n = point.correction(self.buffer.x, 0, len(self.text[self.buffer.y]))
-        self.buffer.x += n
+        n = point.correction(self.cursor.x, 0, len(self.text[self.cursor.y]))
+        self.cursor.x += n
         self.screen.x += n
 
         # Largest y may be less than height - 1 if the buffer is smaller.
-        self.screen.clip(width - 1, min(height - 1, self.buffer.y))
+        self.screen.clip(width - 1, min(height - 1, self.cursor.y))
 
-        col = max(0, self.buffer.x - self.screen.x)
-        row = max(0, self.buffer.y - self.screen.y)
+        col = max(0, self.cursor.x - self.screen.x)
+        row = max(0, self.cursor.y - self.screen.y)
 
         for n in range(height):
             for c in self.text.chunks(width, row + n, col, self.p0, self.p1):
@@ -125,7 +125,7 @@ class CommandPanel(Panel):
         text = list(line.decode("utf8") for line in data.splitlines())
 
         dy = len(text)
-        self.buffer.move(0, dy)
+        self.cursor.move(0, dy)
         self.screen.move(0, dy)
 
         text.extend(self.text)
@@ -143,20 +143,20 @@ class EditorPanel(Panel):
                 self.text = buffer.Buffer([line.rstrip("\n\r") for line in file])
 
     def append(self, data):
-        update = self.buffer.y == len(self.text) - 1 and self.buffer.x == len(
-            self.text[self.buffer.y]
+        update = self.cursor.y == len(self.text) - 1 and self.cursor.x == len(
+            self.text[self.cursor.y]
         )
 
         self.text.append(data)
 
         if update:
-            delta = len(self.text) - 1 - self.buffer.y
+            delta = len(self.text) - 1 - self.cursor.y
             debug.log(
-                "delta", delta, "row", self.buffer.y, "len(self.txt)", len(self.text)
+                "delta", delta, "row", self.cursor.y, "len(self.txt)", len(self.text)
             )
             self.screen.y += delta
-            self.buffer.y += delta
-            self.buffer.x = len(self.text[self.buffer.y])
+            self.cursor.y += delta
+            self.cursor.x = len(self.text[self.cursor.y])
 
     def handle(self, key):
         bindings.editor(key)(self, key)

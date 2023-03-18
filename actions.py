@@ -54,112 +54,112 @@ def cut_selection(widget, key):
 
 
 def cursor_down(widget, key):
-    widget.buffer.y += 1
+    widget.cursor.y += 1
     widget.screen.y += 1
 
 
 def cursor_end_of_buffer(widget, key):
-    widget.buffer.y = len(widget.text) - 1
-    widget.buffer.x = len(widget.text[widget.buffer.y])
-    widget.screen.x = widget.buffer.x
-    widget.screen.y = widget.buffer.y
+    widget.cursor.y = len(widget.text) - 1
+    widget.cursor.x = len(widget.text[widget.cursor.y])
+    widget.screen.x = widget.cursor.x
+    widget.screen.y = widget.cursor.y
 
 
 def cursor_end_of_line(widget, key):
-    widget.buffer.x = len(widget.text[widget.buffer.y])
-    widget.screen.x = widget.buffer.x
+    widget.cursor.x = len(widget.text[widget.cursor.y])
+    widget.screen.x = widget.cursor.x
 
 
 def cursor_left(widget, key):
-    widget.buffer.x -= 1
+    widget.cursor.x -= 1
     widget.screen.x -= 1
 
 
 def cursor_next_page(widget, key):
-    widget.buffer.y = min(len(widget.text) - 1, widget.buffer.y + widget.height)
-    if widget.buffer.y == len(widget.text) - 1:
+    widget.cursor.y = min(len(widget.text) - 1, widget.cursor.y + widget.height)
+    if widget.cursor.y == len(widget.text) - 1:
         widget.screen.y = widget.height - 1
 
 
 def cursor_prev_page(widget, key):
-    widget.buffer.y = max(0, widget.buffer.y - widget.height)
-    if not widget.buffer.y:
+    widget.cursor.y = max(0, widget.cursor.y - widget.height)
+    if not widget.cursor.y:
         widget.screen.y = 0
 
 
 def cursor_right(widget, key):
-    widget.buffer.x += 1
+    widget.cursor.x += 1
     widget.screen.x += 1
 
 
 def cursor_start_of_buffer(widget, key):
-    widget.buffer.x = 0
-    widget.buffer.y = 0
+    widget.cursor.x = 0
+    widget.cursor.y = 0
     widget.screen.x = 0
     widget.screen.y = 0
 
 
 def cursor_start_of_line(widget, key):
-    widget.buffer.x = 0
+    widget.cursor.x = 0
     widget.screen.x = 0
 
 
 def cursor_up(widget, key):
-    widget.buffer.y -= 1
+    widget.cursor.y -= 1
     widget.screen.y -= 1
 
 
 def delete_char(widget, key):
-    if not widget.buffer.x:
+    if not widget.cursor.x:
         # At the beginning of a line.
-        prev = widget.buffer.y - 1
+        prev = widget.cursor.y - 1
         if prev >= 0:
             # There are previous lines.
-            widget.buffer.x = len(widget.text[prev])
-            widget.text[prev] += widget.text[widget.buffer.y]
+            widget.cursor.x = len(widget.text[prev])
+            widget.text[prev] += widget.text[widget.cursor.y]
             widget.text = (
-                widget.text[: widget.buffer.y] + widget.text[widget.buffer.y + 1 :]
+                widget.text[: widget.cursor.y] + widget.text[widget.cursor.y + 1 :]
             )
-            widget.buffer.y = prev
-            widget.screen.x = widget.buffer.x
+            widget.cursor.y = prev
+            widget.screen.x = widget.cursor.x
             widget.screen.y -= 1
         return
 
-    line = widget.text[widget.buffer.y]
-    widget.text[widget.buffer.y] = line[: widget.buffer.x - 1] + line[widget.buffer.x :]
-    widget.buffer.x -= 1
+    line = widget.text[widget.cursor.y]
+    widget.text[widget.cursor.y] = line[: widget.cursor.x - 1] + line[widget.cursor.x :]
+    widget.cursor.x -= 1
     widget.screen.x -= 1
 
 
 def insert_char(widget, key):
     if key == "^J":
         widget.text = (
-            widget.text[: widget.buffer.y]
-            + [widget.text[widget.buffer.y][: widget.buffer.x]]
-            + [widget.text[widget.buffer.y][widget.buffer.x :]]
-            + widget.text[widget.buffer.y + 1 :]
+            widget.text[: widget.cursor.y]
+            + [widget.text[widget.cursor.y][: widget.cursor.x]]
+            + [widget.text[widget.cursor.y][widget.cursor.x :]]
+            + widget.text[widget.cursor.y + 1 :]
         )
-        widget.buffer.x = 0
-        widget.buffer.y += 1
+        widget.cursor.x = 0
+        widget.cursor.y += 1
         widget.screen.x = 0
         widget.screen.y += 1
         return
 
     if len(key) == 1 and curses.ascii.isprint(ord(key)):
-        line = widget.text[widget.buffer.y]
-        widget.text[widget.buffer.y] = (
-            line[: widget.buffer.x] + key + line[widget.buffer.x :]
+        line = widget.text[widget.cursor.y]
+        widget.text[widget.cursor.y] = (
+            line[: widget.cursor.x] + key + line[widget.cursor.x :]
         )
-        widget.buffer.x += 1
+        widget.cursor.x += 1
         widget.screen.x += 1
 
 
 def mouse_left_pressed(widget, x, y):
     debug.log("mouse_left_pressed")
 
-    widget.s.y = min(y + widget.buffer.y - widget.screen.y, len(widget.text) - 1)
+    widget.s.y = min(y + widget.cursor.y - widget.screen.y, len(widget.text) - 1)
     widget.s.x = min(
-        x + widget.buffer.x - widget.screen.x, len(widget.text[widget.s.y]) + 1
+        x + widget.cursor.x - widget.screen.x, len(widget.text[widget.s.y]) + 1
     )
 
     widget.button.x = x
@@ -175,8 +175,8 @@ def mouse_left_released(widget, x, y):
     debug.log("mouse_left_released")
 
     if widget.button.equal(x, y):
-        widget.buffer.x += x - widget.screen.x
-        widget.buffer.y += y - widget.screen.y
+        widget.cursor.x += x - widget.screen.x
+        widget.cursor.y += y - widget.screen.y
         widget.screen.x = x
         widget.screen.y = y
 
@@ -200,8 +200,8 @@ def mouse_move(widget, x, y):
     if widget.s.x == -1 or widget.s.y == -1:
         return
 
-    s = min(y + widget.buffer.y - widget.screen.y, len(widget.text) - 1)
-    r = min(x + widget.buffer.x - widget.screen.x, len(widget.text[s]) + 1)
+    s = min(y + widget.cursor.y - widget.screen.y, len(widget.text) - 1)
+    r = min(x + widget.cursor.x - widget.screen.x, len(widget.text[s]) + 1)
 
     if s < widget.s.y or s == widget.s.y and r < widget.s.x:
         widget.p0.x = r

@@ -56,18 +56,18 @@ class Terminal:
             rows -= n
 
             self.buf.render(self.stdscr, 0, rows - 1, cols)
-            sx, sy = self.buf.buffer.get()
 
-            x, y = self.buf.buffer.get()
+            x, y = self.buf.cursor.get()
             if not self.editing:
-                x, y = self.cli.buffer.get()
+                x, y = self.cli.cursor.get()
 
             self.status.set(x, y)
             self.status.render(self.stdscr, rows - 1, 1, cols)
 
+            sx, sy = self.buf.screen.get()
             if not self.editing:
                 self.cli.render(self.stdscr, rows, n, cols)
-                sx, sy = self.cli.buffer.get()
+                sx, sy = self.cli.screen.get()
                 sy += rows
 
             debug.log("sx =", sx, "sy =", sy)
