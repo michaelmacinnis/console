@@ -9,6 +9,10 @@ def editor(key):
     return editor_bindings.get(key, insert_char)
 
 
+def prompt(key):
+    return prompt_bindings.get(key, prompt_insert_char)
+
+
 def selection(key):
     return selection_bindings.get(key, None)
 
@@ -32,6 +36,8 @@ cli_bindings = default_bindings.copy()
 
 editor_bindings = default_bindings.copy()
 editor_bindings.update({"^S": save_file})
+
+prompt_bindings = default_bindings.copy()
 
 selection_bindings = {
     "^X": cut_selection,

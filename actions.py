@@ -31,6 +31,17 @@ def command_insert_char(widget, key):
             return
 
 
+def prompt_insert_char(widget, key):
+    insert_char(widget, key)
+
+    if key == "^J":
+        raw = widget.text[0]
+        if raw:
+            widget.complete = raw
+            widget.clear()
+            return
+
+
 def copy_selection(widget, key):
     global clipboard
 

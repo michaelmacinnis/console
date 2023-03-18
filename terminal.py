@@ -57,9 +57,9 @@ class Terminal:
 
             self.buf.render(self.stdscr, 0, rows - 1, cols)
 
-            x, y = self.buf.cursor.get()
-            if not self.editing:
-                x, y = self.cli.cursor.get()
+            x, y = self.cli.cursor.get()
+            if self.editing:
+                x, y = self.buf.cursor.get()
 
             self.status.set(x, y)
             self.status.render(self.stdscr, rows - 1, 1, cols)
@@ -178,9 +178,14 @@ def key_press(self):
         return False
     elif key == "^Q":
         if self.editing:
-            return True
+            self.status.prompt = "Exit (y/n)?"
+            self.status.result = lambda ans: ans.lower()[:1] == "y"
 
-    if self.editing:
+    if self.status.prompt != "":
+        self.status.handle(key)
+        debug.log("self.status.complete[:1]", self.status.complete[:1])
+        return self.status.result(self.status.complete)
+    elif self.editing:
         self.buf.handle(key)
     else:
         self.cli.handle(key)

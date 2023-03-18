@@ -7,19 +7,27 @@ import buffer
 import debug
 import point
 
-class Mode(enum.Enum):
-    Prompt = 1
-    Status = 2
-
 class StatusPanel(point.Point):
     def __init__(self):
         super().__init__()
 
-        self.mode = Mode.Status
+        self.clear()
+        self.complete = ""
+
+    def clear(self):
+        # The cursor and selection points uses buffer co-ordinates.
+        self.cursor = point.Point(0, 0)
+        self.screen = point.Point(0, 0)
+
         self.prompt = ""
 
+        self.text = buffer.Buffer([""])
+
+    def handle(self, key):
+        bindings.prompt(key)(self, key)
+
     def render(self, stdscr, offset, height, width):
-        if self.mode == Mode.Status:
+        if self.prompt == "":
             loc = f"{self.y + 1},{self.x} "
 
             if len(loc) > width:
@@ -27,8 +35,15 @@ class StatusPanel(point.Point):
                 loc = ""
 
             spacer = " " * (width - len(loc))
-            debug.log(offset, "STATUS:", spacer + loc)
             addstr(stdscr, offset, 0, spacer + loc, curses.A_REVERSE)
+
+        else:
+            prompt = f"{self.prompt} {self.text[0]}"[:width]
+            if len(prompt) > width:
+                prompt = "?"
+
+            spacer = " " * (width - len(prompt))
+            addstr(stdscr, offset, 0, prompt + spacer, curses.A_REVERSE)
 
 class Panel:
     def __init__(self):
