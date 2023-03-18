@@ -1,4 +1,5 @@
 import curses
+import enum
 
 import actions
 import bindings
@@ -6,6 +7,28 @@ import buffer
 import debug
 import point
 
+class Mode(enum.Enum):
+    Prompt = 1
+    Status = 2
+
+class StatusPanel(point.Point):
+    def __init__(self):
+        super().__init__()
+
+        self.mode = Mode.Status
+        self.prompt = ""
+
+    def render(self, stdscr, offset, height, width):
+        if self.mode == Mode.Status:
+            loc = f"{self.y + 1},{self.x}"
+
+            if len(loc) > width:
+                # Not enough room. Display nothing.
+                loc = ""
+
+            spacer = " " * (width - len(loc))
+            debug.log(offset, "STATUS:", spacer + loc)
+            addstr(stdscr, offset, 0, spacer + loc, curses.A_REVERSE)
 
 class Panel:
     def __init__(self):

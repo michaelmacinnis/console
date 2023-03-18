@@ -16,6 +16,9 @@ class Point:
         self.x += correction(self.x, 0, maxx)
         self.y += correction(self.y, 0, maxy)
 
+    def get(self):
+        return self.x, self.y
+
     def move(self, x, y):
         self.x += x
         self.y += y

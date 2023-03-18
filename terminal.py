@@ -23,10 +23,10 @@ class Terminal:
 
         self.buf = widget.EditorPanel(filename)
         self.cli = widget.CommandPanel()
+        self.status = widget.StatusPanel()
 
         self.editing = filename is not None
         self.selection = None
-        self.status = ""
 
     def input(self):
         eof = key_press(self)
@@ -55,13 +55,23 @@ class Terminal:
             n = min(rows - 1, 0 if self.editing else len(self.cli.text))
             rows -= n
 
-            self.stdscr.addstr(rows - 1, 0, self.status[: cols - 1], curses.A_REVERSE)
-            self.stdscr.chgat(-1, curses.A_REVERSE)
-
             self.buf.render(self.stdscr, 0, rows - 1, cols)
+            sx, sy = self.buf.buffer.get()
+
+            x, y = self.buf.buffer.get()
+            if not self.editing:
+                x, y = self.cli.buffer.get()
+
+            self.status.set(x, y)
+            self.status.render(self.stdscr, rows - 1, 1, cols)
 
             if not self.editing:
                 self.cli.render(self.stdscr, rows, n, cols)
+                sx, sy = self.cli.buffer.get()
+                sy += rows
+
+            debug.log("sx =", sx, "sy =", sy)
+            self.stdscr.move(sy, sx)
 
         # ... and then showing it again, seems to fix the problem.
         curses.curs_set(2)
@@ -126,14 +136,14 @@ def key_press(self):
     key = key_by_name(self.stdscr)
 
     debug.log("key(name) =", repr(key))
-    self.status = "key = {}".format(key)
+    #self.status = "key = {}".format(key)
 
     if key == "KEY_MOUSE":
         try:
             id, x, y, z, b = curses.getmouse()
-            self.status += " id = {} x = {} y = {} z = {} bstate = {}".format(
-                id, x, y, z, b
-            )
+            #self.status += " id = {} x = {} y = {} z = {} bstate = {}".format(
+            #    id, x, y, z, b
+            #)
 
             if b & 65536:  # In case curses.BUTTON4_PRESSED is not defined.
                 key = "KEY_PPAGE"
