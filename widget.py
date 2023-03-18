@@ -20,7 +20,7 @@ class StatusPanel(point.Point):
 
     def render(self, stdscr, offset, height, width):
         if self.mode == Mode.Status:
-            loc = f"{self.y + 1},{self.x}"
+            loc = f"{self.y + 1},{self.x} "
 
             if len(loc) > width:
                 # Not enough room. Display nothing.
