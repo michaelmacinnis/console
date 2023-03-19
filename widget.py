@@ -71,15 +71,52 @@ class Panel:
         self.p1.clear()
         self.s.clear()
 
-    def goto_line(self, n):
-        n -= 1
-        if len(self.text) <= n:
+    def goto_line(self, y, x=0):
+        if len(self.text) <= y:
             return
 
-        delta = n - self.cursor.y
+        deltax = x - self.cursor.x
+        deltay = y - self.cursor.y
 
-        self.cursor.y += delta
-        self.screen.y += delta
+        self.cursor.x += deltax
+        self.cursor.y += deltay
+
+        self.screen.x += deltax
+        self.screen.y += deltay
+
+    def goto_text(self, text, by=1):
+        y = self.cursor.y
+
+        line = self.text[y]
+        start = 0
+        end = len(line)
+
+        if by > 0:
+            start = self.cursor.x
+        else:
+            end = self.cursor.x
+
+        idx = -1
+        line = line[start:end]
+        while True:
+            if by > 0:
+                idx = line.find(text)
+            else:
+                idx = line.rfind(text)
+
+            if idx != -1:
+                break
+
+            y += by
+            if y < 0 or y > len(self.text):
+                break
+
+            start = 0
+            line = self.text[y]
+
+        if idx != -1:
+            self.goto_line(y, start + idx)
+
 
     def mouse(self, b, x, y):
         event = 0

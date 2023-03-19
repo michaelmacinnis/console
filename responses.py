@@ -4,14 +4,33 @@ import debug
 def exit(terminal):
     return yes(terminal.status.complete)
 
+def forward_search(terminal):
+    text = terminal.status.complete
+    if terminal.editing:
+        terminal.buf.goto_text(text)
+    else:
+        terminal.cli.goto_text(text)
+
+    return False
+
 def line_number(terminal):
     n = natural(terminal.status.complete)
     debug.log("line number:", n)
     if n > 0:
+        n -= 1
         if terminal.editing:
             terminal.buf.goto_line(n)
         else:
             terminal.cli.goto_line(n)
+
+    return False
+
+def reverse_search(terminal):
+    text = terminal.status.complete
+    if terminal.editing:
+        terminal.buf.goto_text(text, -1)
+    else:
+        terminal.cli.goto_text(text, -1)
 
     return False
 

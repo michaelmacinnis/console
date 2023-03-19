@@ -163,7 +163,7 @@ def key_press(self):
         except curses.error:
             pass
 
-        return
+        return False
 
     f = bindings.selection(key)
     if f:
@@ -174,12 +174,20 @@ def key_press(self):
     if key == "^E":
         self.editing = False
         return False
+    elif key == "^F":
+        if self.status.prompt != "":
+            return False
+
+        self.status.prompt = "Forward search for?"
+        self.status.response = responses.forward_search
+        return False
     elif key == "^L":
         if self.status.prompt != "":
             return False
 
         self.status.prompt = "Line number?"
         self.status.response = responses.line_number
+        return False
     elif key == "^Q":
         if self.editing:
             self.status.prompt = "Exit (y/n)?"
@@ -187,6 +195,14 @@ def key_press(self):
         elif len(self.cli.text) == 1 and not len(self.cli.text[0]):
             self.status.prompt = "Send EOF (y/n)?"
             self.status.response = responses.send_eof
+        return False
+    elif key == "^R":
+        if self.status.prompt != "":
+            return False
+
+        self.status.prompt = "Reverse search for?"
+        self.status.response = responses.reverse_search
+        return False
     elif key == "^W":
         self.editing = True
         return False
