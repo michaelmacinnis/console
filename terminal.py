@@ -11,17 +11,19 @@ import responses
 import widget
 
 
-def size(curses_resize=True):
+def size():
     zero = struct.pack('HHHH', 0, 0, 0, 0)
+
     t = fcntl.ioctl(0, tty.TIOCGWINSZ, zero)
-    rows, cols, y, x = struct.unpack('HHHH', t)
+
+    rows, cols, x, y = struct.unpack('HHHH', t)
+
     debug.log("terminal size", cols, rows, x, y)
 
-    # Tell curses about new size.
-    #if curses_resize:
     curses.resizeterm(rows, cols)
+    sys.stdout.write(f"\x1b[8;{rows};{cols}t")
 
-    return rows, cols, y, x
+    return cols, rows, x, y
 
 
 class Terminal:

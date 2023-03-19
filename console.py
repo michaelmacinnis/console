@@ -26,9 +26,9 @@ STDERR_FILENO = 2
 
 
 def clear(term, canonical):
-    resize()
     if canonical:
         term.stdscr.clear()
+    term.stdscr.refresh()
 
 
 def extract_type_ahead(data):
@@ -47,8 +47,6 @@ def handle_mode_change(term, canonical, fd):
         # Mode change.
         mode.print(lst)
 
-        clear(term, True)
-
     return icanon_set
 
 
@@ -66,13 +64,18 @@ def main(term):
             special events sent using the self-pipe trick (pfds[0])."""
 
     canonical = True
+    previous = canonical
+
     clear(term, canonical)
+    resize()
 
     while True:
+        if previous != canonical:
+            clear(term, canonical)
+            previous = canonical
+
         if canonical:
             term.render()
-
-        debug.log("waiting...")
 
         fds = [STDIN_FILENO, child_fd, pfds[0]]
         rfds, _, xfds = select.select(fds, [], fds)
@@ -81,9 +84,15 @@ def main(term):
 
         # NOTE: We avoid continues as there may be other fds to handle.
 
+        if pfds[0] in rfds:
+            data = read_fd(pfds[0])
+            if data == b"x":
+                break
+            if data == b"r":
+                resize()
+
         if child_fd in xfds:
             canonical = handle_mode_change(term, canonical, child_fd)
-            debug.log("after mode change")
 
         if child_fd in rfds:
             data, eof = read_child(child_fd)
@@ -98,8 +107,6 @@ def main(term):
 
                 data, type_ahead = extract_type_ahead(data)
                 if type_ahead is not None:
-                    if not canonical:
-                        clear(term, True)
                     canonical = True
 
                     term.type_ahead(type_ahead)
@@ -108,7 +115,7 @@ def main(term):
 
                 if canonical:
                     # TODO: Parse and look for specific escape codes.
-                    if data.startswith(b"\x1b[?1049h") or data.startswith(b"\x1b["):
+                    if data.startswith(b"\x1b["):
                         canonical = handle_mode_change(term, canonical, child_fd)
                         write_all(STDOUT_FILENO, data)
                     elif data:
@@ -122,15 +129,11 @@ def main(term):
                 if eof:
                     break
             else:
+                debug.log("reading stdin...")
                 data = read_fd(STDIN_FILENO)
 
             if data:
                 write_all(child_fd, data)
-
-        if pfds[0] in rfds:
-            data = read_fd(pfds[0])
-            if data == b"x":
-                break
 
 
 def pipe():
@@ -162,12 +165,10 @@ def read_fd(fd):
 
 
 def resize():
-    rows, cols, y, x = terminal.size(True)
-
-    # debug.log("TERMINAL SIZE =", cols, "x", rows)
+    cols, rows, x, y = terminal.size()
 
     # Tell pseudo-terminal (child process) about the new size.
-    w = struct.pack("HHHH", rows, cols, y, x)
+    w = struct.pack("HHHH", rows, cols, x, y)
     fcntl.ioctl(child_fd, tty.TIOCSWINSZ, w)
 
 
@@ -183,10 +184,6 @@ def sigchld(signum, frame):
 
 
 def sigwinch(signum, frame):
-    resize()
-
-    # debug.log("SIGWINCH")
-
     write_all(pfds[1], b"r")
 
 
