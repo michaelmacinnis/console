@@ -1,6 +1,9 @@
 import curses
+import fcntl
 import os
+import struct
 import sys
+import tty
 
 import bindings
 import debug
@@ -9,13 +12,16 @@ import widget
 
 
 def size(curses_resize=True):
-    cols, rows = os.get_terminal_size()
+    zero = struct.pack('HHHH', 0, 0, 0, 0)
+    t = fcntl.ioctl(0, tty.TIOCGWINSZ, zero)
+    rows, cols, y, x = struct.unpack('HHHH', t)
+    debug.log("terminal size", cols, rows, x, y)
 
     # Tell curses about new size.
-    if curses_resize:
-        curses.resizeterm(rows, cols)
+    #if curses_resize:
+    curses.resizeterm(rows, cols)
 
-    return cols, rows
+    return rows, cols, y, x
 
 
 class Terminal:
@@ -72,7 +78,6 @@ class Terminal:
                 sx, sy = self.cli.screen.get()
                 sy += rows
 
-            debug.log("sx =", sx, "sy =", sy)
             self.stdscr.move(sy, sx)
 
         # ... and then showing it again, seems to fix the problem.
@@ -110,7 +115,6 @@ class Terminal:
 def key(stdscr):
     try:
         k = stdscr.getch()
-        debug.log("key(number) =", k)
 
         return k
     except:
@@ -137,10 +141,6 @@ def key_by_name(stdscr):
 
 def key_press(self):
     key = key_by_name(self.stdscr)
-
-    debug.log("key(name) =", repr(key))
-    #self.status = "key = {}".format(key)
-
     if key == "KEY_MOUSE":
         try:
             id, x, y, z, b = curses.getmouse()

@@ -83,7 +83,6 @@ class Buffer(collections.UserList):
 
     def insert(self, cursor, raw):
         lines = split(raw)
-        debug.log(f"BUFFER inserting: {repr(lines)} at {cursor}")
         if len(lines) == 1:
             self[cursor.y] = (
                 self[cursor.y][: cursor.x] + lines[0] + self[cursor.y][cursor.x :]

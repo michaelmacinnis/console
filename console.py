@@ -47,7 +47,7 @@ def handle_mode_change(term, canonical, fd):
         # Mode change.
         mode.print(lst)
 
-        clear(term, icanon_set)
+        clear(term, True)
 
     return icanon_set
 
@@ -81,6 +81,10 @@ def main(term):
 
         # NOTE: We avoid continues as there may be other fds to handle.
 
+        if child_fd in xfds:
+            canonical = handle_mode_change(term, canonical, child_fd)
+            debug.log("after mode change")
+
         if child_fd in rfds:
             data, eof = read_child(child_fd)
             if eof:
@@ -94,8 +98,9 @@ def main(term):
 
                 data, type_ahead = extract_type_ahead(data)
                 if type_ahead is not None:
+                    if not canonical:
+                        clear(term, True)
                     canonical = True
-                    clear(term, canonical)
 
                     term.type_ahead(type_ahead)
 
@@ -103,7 +108,7 @@ def main(term):
 
                 if canonical:
                     # TODO: Parse and look for specific escape codes.
-                    if data.startswith(b"\x1b[?1049h") or data.startswith(b"\x1b[?"):
+                    if data.startswith(b"\x1b[?1049h") or data.startswith(b"\x1b["):
                         canonical = handle_mode_change(term, canonical, child_fd)
                         write_all(STDOUT_FILENO, data)
                     elif data:
@@ -120,17 +125,12 @@ def main(term):
                 data = read_fd(STDIN_FILENO)
 
             if data:
-                term.stdscr.clear()
                 write_all(child_fd, data)
 
         if pfds[0] in rfds:
             data = read_fd(pfds[0])
             if data == b"x":
                 break
-
-        if child_fd in xfds:
-            canonical = handle_mode_change(term, canonical, child_fd)
-            # debug.log("after mode change")
 
 
 def pipe():
@@ -162,12 +162,12 @@ def read_fd(fd):
 
 
 def resize():
-    cols, rows = terminal.size(False)
+    rows, cols, y, x = terminal.size(True)
 
     # debug.log("TERMINAL SIZE =", cols, "x", rows)
 
     # Tell pseudo-terminal (child process) about the new size.
-    w = struct.pack("HHHH", rows, cols, 0, 0)
+    w = struct.pack("HHHH", rows, cols, y, x)
     fcntl.ioctl(child_fd, tty.TIOCSWINSZ, w)
 
 

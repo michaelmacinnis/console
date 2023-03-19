@@ -160,8 +160,6 @@ def insert_char(widget, key):
 
 
 def mouse_left_pressed(widget, x, y):
-    debug.log("mouse_left_pressed")
-
     widget.s.y = min(y + widget.cursor.y - widget.screen.y, len(widget.text) - 1)
     widget.s.x = min(
         x + widget.cursor.x - widget.screen.x, len(widget.text[widget.s.y]) + 1
@@ -177,8 +175,6 @@ def mouse_left_pressed(widget, x, y):
 
 
 def mouse_left_released(widget, x, y):
-    debug.log("mouse_left_released")
-
     if widget.button.equal(x, y):
         widget.cursor.x += x - widget.screen.x
         widget.cursor.y += y - widget.screen.y
@@ -200,8 +196,6 @@ def mouse_left_released(widget, x, y):
 
 
 def mouse_move(widget, x, y):
-    debug.log("mouse_move")
-
     if widget.s.x == -1 or widget.s.y == -1:
         return
 
