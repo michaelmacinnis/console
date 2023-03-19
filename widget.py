@@ -201,7 +201,7 @@ class CommandPanel(Panel):
 
         text.extend(self.text)
 
-        self.text = text
+        self.text = buffer.Buffer(text)
 
 
 class EditorPanel(Panel):
