@@ -34,7 +34,7 @@ class StatusPanel(point.Point):
 
     def render(self, stdscr, offset, height, width):
         if self.prompt == "":
-            loc = f"{self.y + 1},{self.x}"
+            loc = f"{self.y + 1},{self.x} "
             run = f"{self.running[:int(width/2)+1]}"
 
             if len(loc) + len(run) > width:
