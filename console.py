@@ -28,7 +28,6 @@ STDERR_FILENO = 2
 def clear(term, canonical):
     if canonical:
         term.stdscr.clear()
-    term.stdscr.refresh()
 
 
 def extract_type_ahead(data):
