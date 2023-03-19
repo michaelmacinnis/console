@@ -37,6 +37,7 @@ class Terminal:
         cmd, echo = self.cli.command()
         if echo:
             self.buf.append(cmd)
+            self.status.running = cmd
 
         return cmd, eof
 
@@ -100,6 +101,7 @@ class Terminal:
 
     def type_ahead(self, type_ahead):
         self.cli.prepend(type_ahead)
+        self.status.running ="(bash)"
 
 
 # Helpers.

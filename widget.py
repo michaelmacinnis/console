@@ -13,6 +13,7 @@ class StatusPanel(point.Point):
 
         self.clear()
         self.complete = ""
+        self.running = ""
 
     def clear(self):
         # The cursor and selection points uses buffer co-ordinates.
@@ -23,19 +24,26 @@ class StatusPanel(point.Point):
 
         self.text = buffer.Buffer([""])
 
+    def command(self):
+        cmd = self.complete
+        self.complete = ""
+        return cmd
+
     def handle(self, key):
         bindings.prompt(key)(self, key)
 
     def render(self, stdscr, offset, height, width):
         if self.prompt == "":
             loc = f"{self.y + 1},{self.x} "
+            run = f" {self.running}"
 
-            if len(loc) > width:
+            if len(loc) + len(run) > width:
                 # Not enough room. Display nothing.
                 loc = ""
+                run = ""
 
-            spacer = " " * (width - len(loc))
-            addstr(stdscr, offset, 0, spacer + loc, curses.A_REVERSE)
+            spacer = " " * (width - len(loc) - len(run))
+            addstr(stdscr, offset, 0, run + spacer + loc, curses.A_REVERSE)
 
         else:
             prompt = f"{self.prompt} {self.text[0]}"[:width]

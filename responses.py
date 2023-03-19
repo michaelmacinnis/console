@@ -2,10 +2,10 @@ import debug
 
 # Responses.
 def exit(terminal):
-    return yes(terminal.status.complete)
+    return yes(terminal.status.command())
 
 def forward_search(terminal):
-    text = terminal.status.complete
+    text = terminal.status.command()
     if terminal.editing:
         terminal.buf.goto_text(text)
     else:
@@ -14,7 +14,7 @@ def forward_search(terminal):
     return False
 
 def line_number(terminal):
-    n = natural(terminal.status.complete)
+    n = natural(terminal.status.command())
     debug.log("line number:", n)
     if n > 0:
         n -= 1
@@ -26,7 +26,7 @@ def line_number(terminal):
     return False
 
 def reverse_search(terminal):
-    text = terminal.status.complete
+    text = terminal.status.command()
     if terminal.editing:
         terminal.buf.goto_text(text, -1)
     else:
@@ -35,7 +35,7 @@ def reverse_search(terminal):
     return False
 
 def send_eof(terminal):
-    if yes(terminal.status.complete):
+    if yes(terminal.status.command()):
         terminal.cli.complete = b"\x04"
         terminal.cli.clear()
 
