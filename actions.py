@@ -6,6 +6,7 @@ import debug
 
 clipboard = None
 
+
 # Actions.
 def command_insert_char(widget, key):
     insert_char(widget, key)

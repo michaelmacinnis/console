@@ -7,6 +7,7 @@ import buffer
 import debug
 import point
 
+
 class StatusPanel(point.Point):
     def __init__(self):
         super().__init__()
@@ -52,6 +53,7 @@ class StatusPanel(point.Point):
 
             spacer = " " * (width - len(prompt))
             addstr(stdscr, offset, 0, prompt + spacer, curses.A_REVERSE)
+
 
 class Panel:
     def __init__(self):
@@ -124,7 +126,6 @@ class Panel:
 
         if idx != -1:
             self.goto_line(y, start + idx)
-
 
     def mouse(self, b, x, y):
         event = 0

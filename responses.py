@@ -1,8 +1,10 @@
 import debug
 
+
 # Responses.
 def exit(terminal):
     return yes(terminal.status.command())
+
 
 def forward_search(terminal):
     text = terminal.status.command()
@@ -12,6 +14,7 @@ def forward_search(terminal):
         terminal.cli.goto_text(text)
 
     return False
+
 
 def line_number(terminal):
     n = natural(terminal.status.command())
@@ -25,6 +28,7 @@ def line_number(terminal):
 
     return False
 
+
 def reverse_search(terminal):
     text = terminal.status.command()
     if terminal.editing:
@@ -34,12 +38,14 @@ def reverse_search(terminal):
 
     return False
 
+
 def send_eof(terminal):
     if yes(terminal.status.command()):
         terminal.cli.complete = b"\x04"
         terminal.cli.clear()
 
     return False
+
 
 # Helpers.
 def natural(s):
@@ -48,6 +54,6 @@ def natural(s):
     except:
         return 0
 
+
 def yes(s):
     return s.lower()[:1] == "y"
-

@@ -12,11 +12,11 @@ import widget
 
 
 def size():
-    zero = struct.pack('HHHH', 0, 0, 0, 0)
+    zero = struct.pack("HHHH", 0, 0, 0, 0)
 
     t = fcntl.ioctl(0, tty.TIOCGWINSZ, zero)
 
-    rows, cols, x, y = struct.unpack('HHHH', t)
+    rows, cols, x, y = struct.unpack("HHHH", t)
 
     debug.log("terminal size", cols, rows, x, y)
 
@@ -146,9 +146,9 @@ def key_press(self):
     if key == "KEY_MOUSE":
         try:
             id, x, y, z, b = curses.getmouse()
-            #self.status += " id = {} x = {} y = {} z = {} bstate = {}".format(
+            # self.status += " id = {} x = {} y = {} z = {} bstate = {}".format(
             #    id, x, y, z, b
-            #)
+            # )
 
             if b & 65536:  # In case curses.BUTTON4_PRESSED is not defined.
                 key = "KEY_PPAGE"
