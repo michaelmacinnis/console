@@ -66,7 +66,7 @@ def main(term):
     previous = canonical
 
     clear(term, canonical)
-    resize()
+    terminal.resize(child_fd)
 
     while True:
         if previous != canonical:
@@ -88,7 +88,7 @@ def main(term):
             if data == b"x":
                 break
             if data == b"r":
-                resize()
+                terminal.resize(child_fd)
 
         if child_fd in xfds:
             canonical = handle_mode_change(term, canonical, child_fd)
@@ -161,14 +161,6 @@ def read_child(fd):
 
 def read_fd(fd):
     return os.read(fd, 1024)
-
-
-def resize():
-    cols, rows, x, y = terminal.size()
-
-    # Tell pseudo-terminal (child process) about the new size.
-    w = struct.pack("HHHH", rows, cols, x, y)
-    fcntl.ioctl(child_fd, tty.TIOCSWINSZ, w)
 
 
 def sigchld(signum, frame):

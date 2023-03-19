@@ -10,20 +10,35 @@ import debug
 import responses
 import widget
 
+previous_rows = 0
+previous_cols = 0
 
-def size():
+
+def resize(fd):
+    global previous_cols
+    global previous_rows
+
     zero = struct.pack("HHHH", 0, 0, 0, 0)
 
     t = fcntl.ioctl(0, tty.TIOCGWINSZ, zero)
 
     rows, cols, x, y = struct.unpack("HHHH", t)
 
-    debug.log("terminal size", cols, rows, x, y)
+    if cols == previous_cols and rows == previous_rows:
+        return
+
+    previous_cols = cols
+    previous_rows = rows
+
+    debug.log("terminal size changed to", cols, rows, x, y)
 
     curses.resizeterm(rows, cols)
-    sys.stdout.write(f"\x1b[8;{rows};{cols}t")
 
-    return cols, rows, x, y
+    w = struct.pack("HHHH", rows, cols, x, y)
+    fcntl.ioctl(fd, tty.TIOCSWINSZ, w)
+
+    sys.stdout.write(f"\x1b[8;{rows};{cols}t")
+    sys.stdout.flush()
 
 
 class Terminal:
