@@ -230,7 +230,7 @@ def paste_selection(widget, key):
 
     debug.log(f"PASTING: {repr(clipboard)}")
 
-    widget.text.insert(widget.buffer, clipboard)
+    widget.text.insert(widget.cursor, clipboard)
 
 
 def save_file(widget, key):
