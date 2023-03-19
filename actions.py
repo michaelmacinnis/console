@@ -8,12 +8,6 @@ clipboard = None
 
 # Actions.
 def command_insert_char(widget, key):
-    if key == "^Q":
-        if len(widget.text) == 1 and not len(widget.text[0]):
-            widget.complete = b"\x04"
-            widget.clear()
-            return
-
     insert_char(widget, key)
 
     if key == "^J":
@@ -35,9 +29,9 @@ def prompt_insert_char(widget, key):
     insert_char(widget, key)
 
     if key == "^J":
-        raw = widget.text[0]
-        if raw:
-            widget.complete = raw
+        text = widget.text[0]
+        if text:
+            widget.complete = text
             widget.clear()
             return
 

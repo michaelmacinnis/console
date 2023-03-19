@@ -4,6 +4,7 @@ import sys
 
 import bindings
 import debug
+import responses
 import widget
 
 
@@ -173,18 +174,26 @@ def key_press(self):
     if key == "^E":
         self.editing = False
         return False
-    elif key == "^W":
-        self.editing = True
-        return False
+    elif key == "^L":
+        if self.status.prompt != "":
+            return False
+
+        self.status.prompt = "Line number?"
+        self.status.response = responses.line_number
     elif key == "^Q":
         if self.editing:
             self.status.prompt = "Exit (y/n)?"
-            self.status.result = lambda ans: ans.lower()[:1] == "y"
+            self.status.response = responses.exit
+        elif len(self.cli.text) == 1 and not len(self.cli.text[0]):
+            self.status.prompt = "Send EOF (y/n)?"
+            self.status.response = responses.send_eof
+    elif key == "^W":
+        self.editing = True
+        return False
 
     if self.status.prompt != "":
         self.status.handle(key)
-        debug.log("self.status.complete[:1]", self.status.complete[:1])
-        return self.status.result(self.status.complete)
+        return self.status.response(self)
     elif self.editing:
         self.buf.handle(key)
     else:

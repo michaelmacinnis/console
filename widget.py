@@ -71,6 +71,16 @@ class Panel:
         self.p1.clear()
         self.s.clear()
 
+    def goto_line(self, n):
+        n -= 1
+        if len(self.text) <= n:
+            return
+
+        delta = n - self.cursor.y
+
+        self.cursor.y += delta
+        self.screen.y += delta
+
     def mouse(self, b, x, y):
         event = 0
         for mask in (curses.BUTTON1_PRESSED, curses.BUTTON1_RELEASED):
