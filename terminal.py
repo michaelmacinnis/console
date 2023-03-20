@@ -24,6 +24,9 @@ def resize(fd):
 
     rows, cols, x, y = struct.unpack("HHHH", t)
 
+    w = struct.pack("HHHH", rows, cols, x, y)
+    fcntl.ioctl(fd, tty.TIOCSWINSZ, w)
+
     if cols == previous_cols and rows == previous_rows:
         return
 
@@ -33,9 +36,6 @@ def resize(fd):
     debug.log("terminal size changed to", cols, rows, x, y)
 
     curses.resizeterm(rows, cols)
-
-    w = struct.pack("HHHH", rows, cols, x, y)
-    fcntl.ioctl(fd, tty.TIOCSWINSZ, w)
 
     sys.stdout.write(f"\x1b[8;{rows};{cols}t")
     sys.stdout.flush()
